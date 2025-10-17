@@ -41,6 +41,7 @@ void CCommandsTab::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CCommandsTab, CPropertyPage)
 	//{{AFX_MSG_MAP(CCommandsTab)
+	ON_WM_SIZE()
 	ON_BN_CLICKED(IDC_SEND, OnSend)
 	ON_WM_CTLCOLOR()
 	ON_LBN_DBLCLK(IDC_COMMANDLIST, OnDblclkCommandlist)
@@ -54,15 +55,18 @@ END_MESSAGE_MAP()
 /////////////////////////////////////////////////////////////////////////////
 // CCommandsTab message handlers
 
+/**
+ * @brief Sendet einen Befehl an die Remote-Konsole.
+ * Formatiert den Befehl mit dem Befehlspräfix und sendet ihn.
+ */
 void CCommandsTab::OnSend()
 {
-	// TODO: Add your control notification handler code here
 	UpdateData(true);
 	CString csCmd;
-	csCmd.Format("%s%s", ((CAxis2App*)AfxGetApp())->m_csCommandPrefix, m_csCommand);
+	csCmd.Format("%s%s", static_cast<CAxis2App*>(AfxGetApp())->m_csCommandPrefix, m_csCommand);
 
-	if (((CAxis2App*)AfxGetApp())->m_pRConsole)
-		((CAxis2App*)AfxGetApp())->m_pRConsole->Send(csCmd);
+	if (static_cast<CAxis2App*>(AfxGetApp())->m_pRConsole)
+		static_cast<CAxis2App*>(AfxGetApp())->m_pRConsole->Send(csCmd);
 
 	m_saHistory.Add(m_csCommand);
 	m_iHistory = m_saHistory.GetUpperBound();
@@ -74,26 +78,37 @@ BOOL CCommandsTab::OnInitDialog()
 {
 	CPropertyPage::OnInitDialog();
 
-	// TODO: Add extra initialization here
-	m_dcPropertyPage = ((CAxis2App*)AfxGetApp())->m_pcppCommandsTab;
+	m_dcPropertyPage = static_cast<CAxis2App*>(AfxGetApp())->m_pcppCommandsTab;
 
 	if (m_dcCurrentPage == this)
-		((CAxis2App*)AfxGetApp())->m_pcppCommandsTab->m_dcCurrentPage = this;
+		static_cast<CAxis2App*>(AfxGetApp())->m_pcppCommandsTab->m_dcCurrentPage = this;
+
+    CRect rect;
+    GetClientRect(&rect);
+    m_initialWidth = rect.Width();
+
+    SaveInitialControlRects();
 
 	return TRUE;  // return TRUE unless you set the focus to a control
 	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
+/**
+ * @brief Wird aufgerufen, um die Farbe für Steuerelemente festzulegen.
+ * Setzt den Hintergrundmodus auf transparent und die Textfarbe auf Weiß.
+ * @param pDC Zeiger auf den Gerätekontext.
+ * @param pWnd Zeiger auf das Fenster.
+ * @param nCtlColor Typ des Steuerelements.
+ * @return HBRUSH Handle zum Pinsel für den Hintergrund.
+ */
 HBRUSH CCommandsTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 	HBRUSH hbr = CPropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
 
-	// TODO: Change any attributes of the DC here
 	pDC->SetBkMode(TRANSPARENT);
-	pDC->SetTextColor(RGB(255,255,255));
+	pDC->SetTextColor(RGB(255, 255, 255));
 
-	// TODO: Return a different brush if the default is not desired
-	return ((CAxis2App*)AfxGetApp())->m_bkbrush;
+	return static_cast<CAxis2App*>(AfxGetApp())->m_bkbrush;
 }
 
 void CCommandsTab::OnDblclkCommandlist()
@@ -163,4 +178,58 @@ void CCommandsTab::OnChangeCommand()
 
 	// TODO: Add your control notification handler code here
 	
+}
+
+/**
+ * @brief Speichert die anfänglichen Positionen und Größen aller Steuerelemente auf der Registerkarte.
+ */
+void CCommandsTab::SaveInitialControlRects()
+{
+    for (CWnd* pChild = GetWindow(GW_CHILD); pChild != nullptr; pChild = pChild->GetNextWindow())
+    {
+        CRect rect;
+        pChild->GetWindowRect(&rect);
+        ScreenToClient(&rect);
+        m_initialRects[pChild->GetDlgCtrlID()] = rect;
+    }
+}
+
+/**
+ * @brief Wird aufgerufen, wenn die Größe der Registerkarte geändert wird.
+ * Passt die Position und Größe der Steuerelemente dynamisch an.
+ */
+void CCommandsTab::OnSize(UINT nType, int cx, int cy)
+{
+	CPropertyPage::OnSize(nType, cx, cy);
+
+    if (m_initialRects.empty())
+        return;
+
+	// Das Eingabefeld und die Befehlsliste anpassen
+    CWnd* pCommandList = GetDlgItem(IDC_COMMANDLIST);
+    CWnd* pCommand = GetDlgItem(IDC_COMMAND);
+    CWnd* pSend = GetDlgItem(IDC_SEND);
+
+    if (pCommandList && pCommand && pSend)
+    {
+        CRect commandListRect = m_initialRects[IDC_COMMANDLIST];
+        CRect commandRect = m_initialRects[IDC_COMMAND];
+        CRect sendRect = m_initialRects[IDC_SEND];
+
+        // Befehlsliste in der Höhe anpassen
+        commandListRect.bottom = cy - (commandRect.Height() + 20);
+        commandListRect.right = cx - 10;
+        pCommandList->MoveWindow(commandListRect);
+
+        // Eingabefeld und Senden-Button nach unten verschieben
+        commandRect.top = commandListRect.bottom + 10;
+        commandRect.bottom = commandRect.top + commandRect.Height();
+        commandRect.right = cx - (sendRect.Width() + 20);
+        pCommand->MoveWindow(commandRect);
+
+        sendRect.top = commandRect.top;
+        sendRect.left = commandRect.right + 10;
+        sendRect.right = sendRect.left + sendRect.Width();
+        pSend->MoveWindow(sendRect);
+    }
 }

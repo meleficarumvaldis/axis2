@@ -28,12 +28,18 @@ END_MESSAGE_MAP()
  * @brief Konstruktor der CAxis2App-Klasse.
  * Initialisiert die Anwendungsvariablen.
  */
+/**
+ * @brief Konstruktor der CAxis2App-Klasse.
+ * Initialisiert die Anwendungsvariablen. In dieser Phase werden die Zeiger
+ * für die UI-Tabs und die Remote-Konsole auf `nullptr` gesetzt, um sicherzustellen,
+ * dass sie einen definierten Zustand haben, bevor sie verwendet werden.
+ */
 CAxis2App::CAxis2App()
 {
 	// Main = this; // VERALTET: Nicht mehr benötigt, 'theApp' oder 'AfxGetApp()' verwenden.
 	EnableHtmlHelp();
-	m_pcppAxisLogTab = NULL;
-	m_pRConsole = NULL;
+	m_pcppAxisLogTab = nullptr;
+	m_pRConsole = nullptr;
 	m_iReceiveTimeout = 60000;
 }
 
@@ -69,7 +75,7 @@ BOOL CAxis2App::InitInstance()
 	// Set Application Root Path
 	// ANMERKUNG: Setzt den Stammpfad der Anwendung.
 	TCHAR str[MAX_PATH];
-	GetModuleFileName(NULL, str, MAX_PATH);
+	GetModuleFileName(nullptr, str, MAX_PATH);
 	CString strDir(str);
 	m_csRootDirectory = strDir.Left(strDir.ReverseFind(_T('\\'))+1);
 
@@ -183,7 +189,7 @@ BOOL CAxis2App::InitInstance()
 	if ( csProfilePath == "" )
 	{
 		TCHAR pathSelected[MAX_PATH];
-		if (GetPathDlg(NULL, pathSelected, CMsg("IDS_DEFAULT_PROFILE_FOLDER")) == TRUE)
+		if (GetPathDlg(nullptr, pathSelected, CMsg("IDS_DEFAULT_PROFILE_FOLDER")) == TRUE)
 			csProfilePath = pathSelected;
 		else
 			csProfilePath = "C:/Sphere";
@@ -337,7 +343,7 @@ BOOL CAxis2App::InitInstance()
 	//*******************************
 	//Start Reminder Thread
 	// ANMERKUNG: Startet den Erinnerungs-Thread.
-	AfxBeginThread(Reminder,NULL);
+	AfxBeginThread(Reminder,nullptr);
 
 
 	//New Toolbar version
@@ -410,7 +416,7 @@ CAxis2App::~CAxis2App()
 	delete m_pcppSetOverridePaths;
 
 
-	m_pcppAxisLogTab = NULL;
+	m_pcppAxisLogTab = nullptr;
 
 	UnLoadLog();
 	UnLoadBodyDef();
@@ -555,7 +561,7 @@ void CAxis2App::GetRegistryMultiSz(CString csValue, CStringArray * pStrings, HKE
 	DWORD dwType, dwSize;
 	// Need to find out how big the buffer is
 	dwSize = 0;
-	LONG lStatus = RegQueryValueEx(hKey, LPCTSTR(csValue), 0, &dwType, NULL, &dwSize);
+	LONG lStatus = RegQueryValueEx(hKey, LPCTSTR(csValue), 0, &dwType, nullptr, &dwSize);
 
 	if ( dwSize == 0 )
 	{
@@ -609,7 +615,7 @@ void CAxis2App::PutRegistryDword(CString csValue, DWORD dwValue, HKEY hMainKey, 
 {
 	HKEY hKey;
 	DWORD dwDisp;
-	LONG lStatus = RegCreateKeyEx(hMainKey, csSubKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &dwDisp);
+	LONG lStatus = RegCreateKeyEx(hMainKey, csSubKey, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisp);
 
 	if ( lStatus != ERROR_SUCCESS )
 	{
@@ -640,7 +646,7 @@ void CAxis2App::PutRegistryString(CString csValue, CString csString, HKEY hMainK
 	HKEY hKey;
 	DWORD dwDisp;
 
-	LONG lStatus = RegCreateKeyEx(hMainKey, csSubKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &dwDisp);
+	LONG lStatus = RegCreateKeyEx(hMainKey, csSubKey, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisp);
 
 	if ( lStatus != ERROR_SUCCESS )
 	{
@@ -670,7 +676,7 @@ void CAxis2App::PutRegistryMultiSz(CString csValue, CStringArray * pStrings, HKE
 {
 	HKEY hKey;
 	DWORD dwDisp;
-	LONG lStatus = RegCreateKeyEx(hMainKey, csSubKey, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &dwDisp);
+	LONG lStatus = RegCreateKeyEx(hMainKey, csSubKey, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisp);
 
 	int i = 0;
 	int iLength = 0;
@@ -1207,7 +1213,7 @@ void CAxis2App::UnLoadLog()
 	if (!m_olLog.IsEmpty())
 	{
 		POSITION Pos = m_olLog.GetHeadPosition();
-		while (Pos != NULL)
+		while (Pos != nullptr)
 		{
 			CLogArray * pLog = (CLogArray *) m_olLog.GetNext(Pos);
 			delete (pLog);

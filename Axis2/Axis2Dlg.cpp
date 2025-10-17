@@ -41,6 +41,7 @@ BEGIN_MESSAGE_MAP(CAxis2Dlg, CPropertySheet)
 	ON_WM_QUERYDRAGICON()
 	ON_WM_CLOSE()
 	ON_WM_DESTROY()
+	ON_WM_SIZE()
 	ON_COMMAND(ID_SETTINGS, OnOpenSettingsPage)
 	ON_COMMAND(ID_PROFILES_OPENPROFILE, OnProfilesOpenprofile)
 	ON_COMMAND(ID_PROFILES_UNLOAD, OnProfilesUnload)
@@ -77,7 +78,7 @@ BOOL CAxis2Dlg::OnInitDialog()
 		csY = ((CAxis2App*)AfxGetApp())->m_csPosition.Mid(((CAxis2App*)AfxGetApp())->m_csPosition.Find(",") + 1 );
 	y = atoi(csY);
 	if ( x != 0 && y != 0 )
-		SetWindowPos(NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+		SetWindowPos(nullptr, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
 
 	// Load the ToolBar and hide it
 	CAxis2Dlg(CFMsg(CMsg("IDS_AXISTITLE"), ((CAxis2App*)AfxGetApp())->GetVersionTitle()));
@@ -94,7 +95,29 @@ BOOL CAxis2Dlg::OnInitDialog()
 	_tcscpy(nid.szTip, csTip);
 	Shell_NotifyIcon(NIM_ADD, &nid);
 
+	// Fenster-Stil ändern, um Größenänderung zu ermöglichen
+	ModifyStyle(DS_MODALFRAME, WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME);
+
 	return bResult;
+}
+
+/**
+ * @brief Wird aufgerufen, wenn die Größe des Fensters geändert wird.
+ * Passt die Größe des Tab-Steuerelements an die neue Fenstergröße an.
+ * @param nType Typ der Größenänderung.
+ * @param cx Neue Breite des Client-Bereichs.
+ * @param cy Neue Höhe des Client-Bereichs.
+ */
+void CAxis2Dlg::OnSize(UINT nType, int cx, int cy)
+{
+	CPropertySheet::OnSize(nType, cx, cy);
+
+	if (GetTabControl())
+	{
+		CRect rect;
+		GetClientRect(&rect);
+		GetTabControl()->MoveWindow(&rect);
+	}
 }
 
 void CAxis2Dlg::OnSysCommand(UINT nID, LPARAM lParam)
@@ -164,7 +187,7 @@ void CAxis2Dlg::OnDestroy()
 
 	HKEY hKey;
 	DWORD dwDisp;
-	LONG lStatus = RegCreateKeyEx( hRegLocation, REGKEY_AXIS, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &dwDisp);
+	LONG lStatus = RegCreateKeyEx( hRegLocation, REGKEY_AXIS, 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, nullptr, &hKey, &dwDisp);
 	if ( lStatus == ERROR_SUCCESS )
 	{
 		((CAxis2App*)AfxGetApp())->m_csPosition.Format("%ld,%ld", place.rcNormalPosition.left, place.rcNormalPosition.top);
@@ -198,7 +221,7 @@ void CAxis2Dlg::OnTrayNotify(WPARAM wParam, LPARAM lParam)
 		CPoint pos;
 		GetCursorPos(&pos);
 		SetForegroundWindow();
-		trayMenu.TrackPopupMenu(TPM_RIGHTBUTTON, pos.x, pos.y, this, NULL);
+		trayMenu.TrackPopupMenu(TPM_RIGHTBUTTON, pos.x, pos.y, this, nullptr);
 		PostMessage(WM_NULL, 0, 0);
 	}
 }
