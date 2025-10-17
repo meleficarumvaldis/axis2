@@ -31,6 +31,8 @@
 // CommandsTab.h : header file
 //
 
+#include <map>
+
 #include "TabCtrl.h"
 #include "DockingPage.h"
 
@@ -66,10 +68,14 @@ public:
 
 // Implementation
 protected:
+    std::map<int, CRect> m_initialRects;
+    int m_initialWidth;
+    void SaveInitialControlRects();
 	int iNextID;
 	// Generated message map functions
 	//{{AFX_MSG(CCommandsTab)
 	virtual BOOL OnInitDialog();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg void OnAddtab();
 	afx_msg void OnDeltab();
 	afx_msg void OnCleartab();

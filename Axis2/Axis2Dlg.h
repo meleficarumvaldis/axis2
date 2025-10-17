@@ -89,6 +89,7 @@ protected:
 	afx_msg void OnHelp();
 	afx_msg void OnAboutDlg();
 	afx_msg void OnClose();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	//afx_msg void OnReadAnim();
 
 public:

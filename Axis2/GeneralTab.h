@@ -33,6 +33,7 @@
 
 #include "DockingPage.h"
 #include "afxwin.h"
+#include <map>
 
 /////////////////////////////////////////////////////////////////////////////
 // CItemTab dialog
@@ -70,6 +71,10 @@ public:
 
 // Implementation
 protected:
+    std::map<int, CRect> m_initialRects;
+    int m_initialWidth;
+    void SaveInitialControlRects();
+
 	// Generated message map functions
 	//{{AFX_MSG(CGeneralTab)
 	virtual BOOL OnInitDialog();
@@ -127,6 +132,7 @@ protected:
 	afx_msg void OnSavestatics();
 	afx_msg void OnResync();
 	afx_msg void OnRestockall();
+	afx_msg void OnSize(UINT nType, int cx, int cy);
 	//}}AFX_MSG
 	DECLARE_MESSAGE_MAP()
 public:
