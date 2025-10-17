@@ -1,0 +1,69 @@
+# # # Editor-spezifische Dateien # # #
+# Visual Studio
+.vs/
+*.VC.db
+*.VC.opendb
+*.suo
+*.user
+
+# # # Build-Ausgaben und Artefakte # # #
+# Projekt-Ausgabeverzeichnisse
+[Bb]in/
+[Bb]uild/
+[Dd]ebug/
+[Dd]ebug Public/
+[Rr]elease/
+x64/
+Win32/
+
+# Kompilierte Dateien
+*.obj
+*.o
+*.pch
+*.pdb
+*.ilk
+*.lib
+*.a
+*.dll
+*.so
+*.exe
+*.tlog
+
+# # # Temporäre und generierte Dateien # # #
+# CppUnitTest
+*.lastbuildstate
+
+# Resharper C++
+*_i.c
+*_p.c
+*_i.h
+*.ncb
+*.sdf
+*.opensdf
+*.VC.db
+
+# Profiling-Dateien
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# Remote Debugging
+$(IntDir)
+
+# # # Sonstige Dateien # # #
+# Veröffentlichungs- und Paketdateien
+*.nupkg
+*.snupkg
+*.appx
+*.appxbundle
+*.msix
+*.msixbundle
+_pkginfo.txt
+
+# Veraltete IntelliSense-Dateien
+ipch/
+
+# # # Hinzugefügt für dein Projekt # # #
+# Spezifische Dateien, die von Axis2/C++ oder externen Libs generiert werden könnten
+*.log
