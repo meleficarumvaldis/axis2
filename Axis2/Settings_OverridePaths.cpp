@@ -1,27 +1,4 @@
-/*
-
- **********************************************************************
- *
- * Original Axis by:
- * Copyright (C) Philip A. Esterle 1998-2002 + (C) parts Adron 2002
- *
- * 55r,56(x) Mods, and Axis2 re-build by:
- * Copyright (C) Benoit Croussette 2004-2006
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of version 2 of the GNU General Public License as
- * published by the Free Software Foundation.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- **********************************************************************
-
-*/
-
-// Settings_Paths.cpp : implementation file
+// Settings_OverridePaths.cpp : implementation file
 //
 
 #include "stdafx.h"
@@ -42,129 +19,106 @@ IMPLEMENT_DYNCREATE(CSettingsOverridePaths, CPropertyPage)
 CSettingsOverridePaths::CSettingsOverridePaths() : CPropertyPage(CSettingsOverridePaths::IDD)
 {
 	//{{AFX_DATA_INIT(CSettingsOverridePaths)
-	//}}AFX_DATA_INIT
-}
+		// NOTE: the ClassWizard will add member initialization here
+	//}}AFX_DATA_INIT}
 
 
 CSettingsOverridePaths::~CSettingsOverridePaths()
 {
 }
 
-
 void CSettingsOverridePaths::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CSettingsOverridePaths)
-	DDX_Control(pDX, IDC_PATHBROWSE, m_cbPathBrowse);
-	DDX_Control(pDX, IDC_RESETPATH, m_cbResetPath);
-	DDX_Control(pDX, IDC_PATHLIST, m_clcPathList);
+	DDX_Control(pDX, IDC_PATHLIST, m_PathList);
 	//}}AFX_DATA_MAP
 }
 
 
 BEGIN_MESSAGE_MAP(CSettingsOverridePaths, CPropertyPage)
 	//{{AFX_MSG_MAP(CSettingsOverridePaths)
-	ON_NOTIFY(LVN_ITEMCHANGED, IDC_PATHLIST, OnPathchangedItem)
-	ON_BN_CLICKED(IDC_PATHBROWSE, OnPathBrowse)
-	ON_BN_CLICKED(IDC_RESETPATH, OnResetPath)
-	ON_BN_CLICKED(IDC_RESET_OVERPATHS, OnResetTab)
+	ON_WM_CTLCOLOR()
+	ON_BN_CLICKED(IDC_SETP, OnSetp)
+	ON_BN_CLICKED(IDC_RESETP, OnResetp)
+	ON_LBN_SELCHANGE(IDC_PATHLIST, OnSelchangePathlist)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CSettingsOverridePaths message handlers
 
-BOOL CSettingsOverridePaths::OnInitDialog() 
+HBRUSH CSettingsOverridePaths::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+	HBRUSH hbr = CPropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
+
+	// TODO: Change any attributes of the DC here
+	pDC->SetBkMode(TRANSPARENT);
+	pDC->SetTextColor(RGB(255,255,255));
+
+	// TODO: Return a different brush if the default is not desired
+	return ((CAxis2App*)AfxGetApp())->m_bkbrush;
+}
+
+BOOL CSettingsOverridePaths::OnInitDialog()
 {
 	CPropertyPage::OnInitDialog();
 
-	m_clcPathList.InsertColumn(0, "File", LVCFMT_LEFT, 80, -1);
-	m_clcPathList.InsertColumn(1, "Path", LVCFMT_LEFT, 400, -1);
-	OnFillPaths();
+	// TODO: Add extra initialization here
+	for ( int i = 0; i < VERFILE_QTY; i++ )
+	{
+		m_PathList.AddString(GetMulFileName(i));
+	}
 
-	return TRUE;
+	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-void CSettingsOverridePaths::OnPathBrowse() 
+BOOL CSettingsOverridePaths::OnApply()
 {
-	CString csFile = m_clcPathList.GetItemText(iSelIndex, 0);
-	CString csExt = csFile.Mid(csFile.Find("."));
-	CString csFilter;
-	csFilter.Format(_T("Ultima Online files (*%s)|*%s|All files (*.*)|*.*||"), csExt, csExt);
-	CFileDialog dlg(TRUE, csExt, csFile, 0, csFilter, NULL);
+	// TODO: Add specialized code here and/or call the base class
+
+	return CPropertyPage::OnApply();
+}
+
+void CSettingsOverridePaths::OnSetp()
+{
+	// TODO: Add your control notification handler code here
+	int iSel = m_PathList.GetCurSel();
+	if ( iSel == -1 )
+		return;
+
+	CString csFileName;
+	m_PathList.GetText(iSel, csFileName);
+
+	CFileDialog dlg(true, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT, "Mul Files (*.mul)|*.mul|UOP Files (*.uop)|*.uop|All Files (*.*)|*.*||");
 	if ( dlg.DoModal() == IDOK )
 	{
-		CString csPath;
-		csPath = dlg.GetPathName();
-		m_clcPathList.SetItemText(iSelIndex, 1, csPath);
-		Main->SetMulPath(iSelIndex, csPath);
-		m_cbResetPath.EnableWindow(true);
-		Main->PutRegistryString(GetMulFileName(iSelIndex), csPath, hRegLocation, REGKEY_OVERRIDEPATH);
+		((CAxis2App*)AfxGetApp())->PutRegistryString(csFileName, dlg.GetPathName(), hRegLocation, REGKEY_OVERRIDEPATH);
 	}
 }
 
-void CSettingsOverridePaths::OnResetPath()
+void CSettingsOverridePaths::OnResetp()
 {
-	CString csPath;
-	csPath.Format(_T("%s%s"), csMulPath, GetMulFileName(iSelIndex));
-	m_clcPathList.SetItemText(iSelIndex, 1, csPath);
-	Main->SetMulPath(iSelIndex, csPath);
-	m_cbResetPath.EnableWindow(false);
-	Main->DeleteRegistryValue(GetMulFileName(iSelIndex), REGKEY_OVERRIDEPATH, hRegLocation);
-}
-
-void CSettingsOverridePaths::OnResetTab()
-{
-	if ( AfxMessageBox( "Are you sure you want to reset all Paths settings to default?", MB_OKCANCEL | MB_ICONQUESTION) == IDCANCEL )
+	// TODO: Add your control notification handler code here
+	int iSel = m_PathList.GetCurSel();
+	if ( iSel == -1 )
 		return;
 
-	for(int i = 0; i < VERFILE_QTY; i++)
-	{
-		CString csPath;
-		csPath.Format(_T("%s%s"), csMulPath, GetMulFileName(i));
-		m_clcPathList.SetItemText(i, 1, csPath);
-		Main->SetMulPath(i, csPath);
-		Main->DeleteRegistryValue(GetMulFileName(i), REGKEY_OVERRIDEPATH, hRegLocation);
-	}
-	m_cbResetPath.EnableWindow(false);
-	UpdateData(false);
+	CString csFileName;
+	m_PathList.GetText(iSel, csFileName);
+	((CAxis2App*)AfxGetApp())->DeleteRegistryValue(csFileName, REGKEY_OVERRIDEPATH);
 }
 
-void CSettingsOverridePaths::OnFillPaths()
+void CSettingsOverridePaths::OnSelchangePathlist()
 {
-	for(int i = 0; i < VERFILE_QTY; i++)
-	{
-		m_clcPathList.InsertItem(i, GetMulFileName(i) );
-		m_clcPathList.SetItemText(i, 1, Main->GetMulPath(i));
-	}
-}
-
-void CSettingsOverridePaths::OnPathchangedItem(NMHDR* pNMHDR, LRESULT* pResult) 
-{
-	NM_LISTVIEW* pNMListView = (NM_LISTVIEW*)pNMHDR;
-	
-	if (pNMListView->uNewState & LVNI_SELECTED)
-	{
-		// this is the one that has been selected
-		iSelIndex = m_clcPathList.GetNextItem(-1, LVNI_SELECTED);
-		if (iSelIndex == -1)
-		{
-			m_cbPathBrowse.EnableWindow(false);
-			m_cbResetPath.EnableWindow(false);
-			return;
-		}
-		m_clcPathList.SetHotItem(iSelIndex);
-		m_cbPathBrowse.EnableWindow(true);
-		CString csOrigPath;
-		csOrigPath.Format(_T("%s%s"), csMulPath, GetMulFileName(iSelIndex));
-		CString csPath = m_clcPathList.GetItemText(iSelIndex, 1);
-		if (csOrigPath != csPath)
-			m_cbResetPath.EnableWindow(true);
-		else
-			m_cbResetPath.EnableWindow(false);
+	// TODO: Add your control notification handler code here
+	int iSel = m_PathList.GetCurSel();
+	if ( iSel == -1 )
 		return;
-	}
-	m_cbPathBrowse.EnableWindow(false);
-	m_cbResetPath.EnableWindow(false);
-	*pResult = 0;
+
+	CString csFileName;
+	m_PathList.GetText(iSel, csFileName);
+	CString csPath = ((CAxis2App*)AfxGetApp())->GetRegistryString(csFileName, "", hRegLocation, REGKEY_OVERRIDEPATH);
+	SetDlgItemText(IDC_CURRENTPATH, csPath);
 }

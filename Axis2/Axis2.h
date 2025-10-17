@@ -76,6 +76,10 @@
 #include "ColorSelectionDlg.h"
 #include "ToolBar.h"
 
+// Konstanten für Registry-Schlüssel
+const CString REGKEY_AXIS = "Software\\Axis2";
+const CString REGKEY_OVERRIDEPATH = "Software\\Axis2\\OverridePath";
+
 
 /////////////////////////////////////////////////////////////////////////////
 // CAxis2App:
@@ -226,7 +230,9 @@ public:
 	DECLARE_MESSAGE_MAP()
 };
 
-extern CAxis2App * Main;
+// VERALTET: extern CAxis2App * Main;
+// Stattdessen AfxGetApp() oder die globale Variable 'theApp' verwenden.
+
 
 /////////////////////////////////////////////////////////////////////////////
 

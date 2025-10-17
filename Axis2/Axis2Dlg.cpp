@@ -1,36 +1,9 @@
-/*
-
- **********************************************************************
- *
- * Original Axis by:
- * Copyright (C) Philip A. Esterle 1998-2002 + (C) parts Adron 2002
- *
- * 55r,56(x) Mods, and Axis2 re-build by:
- * Copyright (C) Benoit Croussette 2004-2006
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of version 2 of the GNU General Public License as
- * published by the Free Software Foundation.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- **********************************************************************
-
-*/
-
 // Axis2Dlg.cpp : implementation file
 //
 
 #include "stdafx.h"
 #include "Axis2.h"
 #include "Axis2Dlg.h"
-#include "stdio.h"
-#include "AboutDlg.h"
-#include "SettingsDlg.h"
-
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -53,295 +26,278 @@ CAxis2Dlg::CAxis2Dlg(LPCTSTR pszCaption, CWnd* pParentWnd, UINT iSelectPage)
 	:CPropertySheet(pszCaption, pParentWnd, iSelectPage)
 {
 	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
-	m_bInit = false;
+	EnableStackedTabs( false );
 }
 
 CAxis2Dlg::~CAxis2Dlg()
 {
-	m_nid.uFlags = 0;
-	Shell_NotifyIcon(NIM_DELETE, &m_nid);
 }
 
 
 BEGIN_MESSAGE_MAP(CAxis2Dlg, CPropertySheet)
 	//{{AFX_MSG_MAP(CAxis2Dlg)
-	ON_WM_CREATE()
 	ON_WM_SYSCOMMAND()
-	ON_WM_MOVE()
-	ON_COMMAND(ID_SETTINGS_GENERAL, OnSettingsGeneral)
-	ON_COMMAND(ID_SETTINGS_FILEPATHS, OnSettingsPaths)
-	ON_COMMAND(ID_SETTINGS_ITEMTAB, OnSettingsItem)
-	ON_COMMAND(ID_SETTINGS_TRAVELTAB, OnSettingsTravel)
-	ON_COMMAND(ID_SETTINGS_SPAWNTAB, OnSettingsSpawn)
-	ON_COMMAND(ID_SETTINGS_OVERRIDEPATHS, OnSettingsOverridePaths)
-	ON_COMMAND(ID_PROFILES_OPTION, OnOpenProfileOption)
-	ON_COMMAND(ID_PROFILES_UNLOAD, OnUnloadProfile)
-	ON_COMMAND(ID_PROFILES_LOADDEFAULT, OnLoadDefProfile)
-	ON_COMMAND(ID_PROFILES_LOADLASTPROFILE, OnLoadLastProfile)
-	ON_COMMAND(ID_HELP_DOCUMENTATION, OnHelp)
-	ON_COMMAND(ID_HELP_ABOUTAXIS2, OnAboutDlg)
-	ON_COMMAND(ID_EXIT_CLOSEAXIS2, OnClose)
+	ON_WM_PAINT()
+	ON_WM_QUERYDRAGICON()
+	ON_WM_CLOSE()
+	ON_WM_DESTROY()
+	ON_COMMAND(ID_SETTINGS, OnOpenSettingsPage)
+	ON_COMMAND(ID_PROFILES_OPENPROFILE, OnProfilesOpenprofile)
+	ON_COMMAND(ID_PROFILES_UNLOAD, OnProfilesUnload)
+	ON_COMMAND(ID_PROFILES_LOADDEFAULT, OnProfilesLoaddefault)
+	ON_COMMAND(ID_PROFILES_LOADLASTPROFILE, OnProfilesLoadlastprofile)
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
-// CAxis2Dlg message handlers
+// CAxis2App message handlers
 
 BOOL CAxis2Dlg::OnInitDialog() 
 {
-
 	BOOL bResult = CPropertySheet::OnInitDialog();
 
-	Main->pDefMenu.LoadMenu(IDR_MENU1);
-	SetMenu(&Main->pDefMenu);
-
-	ModifyStyle(0, WS_THICKFRAME | WS_MAXIMIZEBOX);
-
-	Main->UpdateProfileMenu();
-
+	// Set the icon for this dialog.  The framework does this automatically
+	//  when the application's main window is not a dialog
 	SetIcon(m_hIcon, TRUE);			// Set big icon
 	SetIcon(m_hIcon, FALSE);		// Set small icon
-	
-	int x, y;
-	x = -1;
-	y = -1;
-	CString csX, csY;
-	csX = Main->m_csPosition.SpanExcluding(",");
-	if ( csX != "" )
-		x = atoi(csX);
-	if ( Main->m_csPosition.Find(",") != -1 )
-		csY = Main->m_csPosition.Mid(Main->m_csPosition.Find(",") + 1 );
-	if ( csY != "" )
-		y = atoi(csY);
-	int X, Y;
-	X = GetSystemMetrics(SM_CXFULLSCREEN)-20;
-	Y = GetSystemMetrics(SM_CYFULLSCREEN)-20;
-	CRect rectDlg;
-	GetWindowRect(rectDlg);
-	if ( x >= 0 && y >= 0 && x <= X && y <= Y )
-		this->SetWindowPos( NULL, x, y, rectDlg.Width(), rectDlg.Height()+23, SWP_NOZORDER );
 
-	m_bInit = true;
+	// TODO: Add extra initialization here
+	((CAxis2App*)AfxGetApp())->pDefMenu.LoadMenu(IDR_MENU1);
+	SetMenu(&((CAxis2App*)AfxGetApp())->pDefMenu);
+	
+	// Load the current profile and set the menu accordingly
+	((CAxis2App*)AfxGetApp())->UpdateProfileMenu();
+
+	// Set the window's position
+	CString csX, csY;
+	csX = ((CAxis2App*)AfxGetApp())->m_csPosition.SpanExcluding(",");
+	int x = atoi(csX);
+	int y = 0;
+	if ( ((CAxis2App*)AfxGetApp())->m_csPosition.Find(",") != -1 )
+		csY = ((CAxis2App*)AfxGetApp())->m_csPosition.Mid(((CAxis2App*)AfxGetApp())->m_csPosition.Find(",") + 1 );
+	y = atoi(csY);
+	if ( x != 0 && y != 0 )
+		SetWindowPos(NULL, x, y, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
+
+	// Load the ToolBar and hide it
+	CAxis2Dlg(CFMsg(CMsg("IDS_AXISTITLE"), ((CAxis2App*)AfxGetApp())->GetVersionTitle()));
+
+	// Create Tray Icon
+	nid.cbSize = sizeof(NOTIFYICONDATA);
+	nid.hWnd = m_hWnd;
+	nid.uID = 0;
+	nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
+	nid.uCallbackMessage = WM_TRAY_NOTIFY;
+	nid.hIcon = m_hIcon;
+	CString csTip;
+	csTip.Format("%s (%s)", ((CAxis2App*)AfxGetApp())->GetVersionTitle(), ((CAxis2App*)AfxGetApp())->m_csCurrentProfile);
+	_tcscpy(nid.szTip, csTip);
+	Shell_NotifyIcon(NIM_ADD, &nid);
+
 	return bResult;
 }
 
-CAxis2Dlg::CAxis2Dlg()
+void CAxis2Dlg::OnSysCommand(UINT nID, LPARAM lParam)
 {
-	CAxis2Dlg(CFMsg(CMsg("IDS_AXISTITLE"), Main->GetVersionTitle()));
+	if ((nID & 0xFFF0) == IDM_ABOUTBOX)
+	{
+		CAboutDlg dlgAbout;
+		dlgAbout.DoModal();
+	}
+	else
+	{
+		CPropertySheet::OnSysCommand(nID, lParam);
+	}
 }
 
-int CAxis2Dlg::OnCreate(LPCREATESTRUCT lpCreateStruct) 
-{
-	m_nid.cbSize = sizeof(m_nid);
-	m_nid.hWnd = this->GetSafeHwnd();
-	m_nid.uID = 1;
-	m_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-	m_nid.uCallbackMessage = WM_USER;
-	m_nid.hIcon = m_hIcon;
-	CString csTip;
-	csTip.Format("%s (%s)", Main->GetVersionTitle(), Main->m_csCurrentProfile);
-	strcpy_s(m_nid.szTip,sizeof(m_nid.szTip), csTip);
-	Shell_NotifyIcon(NIM_ADD, &m_nid);
-	m_bModeless = 1;
-	if (CPropertySheet::OnCreate(lpCreateStruct) == -1)
-		return -1;
-	ModifyStyle(0, WS_MINIMIZEBOX);
+// If you add a minimize button to your dialog, you will need the code below
+//  to draw the icon.  For MFC applications using the document/view model,
+//  this is automatically done for you by the framework.
 
-	Main->m_dlgToolBar = new CAxis2LBar;
-	Main->m_dlgToolBar->Create(IDD_TOOLBAR);
-	Main->m_dlgToolBar->ShowWindow(SW_HIDE);
-	
-	return 0;
+void CAxis2Dlg::OnPaint()
+{
+	if (IsIconic())
+	{
+		CPaintDC dc(this); // device context for painting
+
+		SendMessage(WM_ICONERASEBKGND, (WPARAM) dc.GetSafeHdc(), 0);
+
+		// Center icon in client rectangle
+		int cxIcon = GetSystemMetrics(SM_CXICON);
+		int cyIcon = GetSystemMetrics(SM_CYICON);
+		CRect rect;
+		GetClientRect(&rect);
+		int x = (rect.Width() - cxIcon + 1) / 2;
+		int y = (rect.Height() - cyIcon + 1) / 2;
+
+		// Draw the icon
+		dc.DrawIcon(x, y, m_hIcon);
+	}
+	else
+	{
+		CPropertySheet::OnPaint();
+	}
 }
 
-
-LRESULT CAxis2Dlg::DefWindowProc(UINT message, WPARAM wParam, LPARAM lParam) 
+// The system calls this to obtain the cursor to display while the user drags
+//  the minimized window.
+HCURSOR CAxis2Dlg::OnQueryDragIcon()
 {
-	if (message == WM_USER)
-	{
-		if (lParam == WM_LBUTTONDOWN)
-		{
-			this->ShowWindow(SW_SHOWNORMAL);
-			Main->m_dlgToolBar->ShowWindow(SW_HIDE);
-			return TRUE;
-		}
-	}
-	if (message == WM_SYSCOMMAND)
-	{
-		if (wParam == SC_MINIMIZE)
-		{
-			this->ShowWindow(SW_HIDE);
-			if (!Main->m_dwDisableToolbar)
-				Main->m_dlgToolBar->ShowWindow(SW_SHOWNORMAL);
-			return TRUE;
-		}
-	}
-	if (message == WM_DESTROY)
-	{
-		this->PressButton(PSBTN_OK);
-		return TRUE;
-	}
-	return CPropertySheet::DefWindowProc(message, wParam, lParam);
+	return (HCURSOR) m_hIcon;
 }
 
-void CAxis2Dlg::OnSysCommand(UINT nID, LPARAM lParam) 
+void CAxis2Dlg::OnClose()
 {
-	if (nID == SC_CLOSE)
-	{
-		if (Main->m_dwSysClose)
-			this->PressButton(PSBTN_OK);
-		else
-			ShowWindow(SW_HIDE);
-		return;
-	}
-	CPropertySheet::OnSysCommand(nID, lParam);
+	if(((CAxis2App*)AfxGetApp())->m_dwSysClose)
+		CPropertySheet::OnClose();
+	else
+		ShowWindow(SW_HIDE);
 }
 
-void CAxis2Dlg::OnMove(int x, int y) 
+void CAxis2Dlg::OnDestroy()
 {
-	CPropertySheet::OnMove(x, y);
+	CPropertySheet::OnDestroy();
 
-	if ( !m_bInit )
-		return;
-
+	// TODO: Add your message handler code here
 	WINDOWPLACEMENT place;
-	this->GetWindowPlacement(&place);
+	GetWindowPlacement(&place);
+
 	HKEY hKey;
 	DWORD dwDisp;
-	LONG lStatus = RegCreateKeyEx(hRegLocation, REGKEY_AXIS, 0, NULL, REG_OPTION_NON_VOLATILE,
-		KEY_ALL_ACCESS, NULL, &hKey, &dwDisp);
-	if (lStatus == ERROR_SUCCESS)
+	LONG lStatus = RegCreateKeyEx( hRegLocation, REGKEY_AXIS, 0, NULL, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS, NULL, &hKey, &dwDisp);
+	if ( lStatus == ERROR_SUCCESS )
 	{
-		Main->m_csPosition.Format("%ld,%ld", place.rcNormalPosition.left, place.rcNormalPosition.top);
-		lStatus = RegSetValueEx( hKey, "Position", 0, REG_SZ, ((BYTE *) Main->m_csPosition.GetBuffer(Main->m_csPosition.GetLength())), Main->m_csPosition.GetLength() );
+		((CAxis2App*)AfxGetApp())->m_csPosition.Format("%ld,%ld", place.rcNormalPosition.left, place.rcNormalPosition.top);
+		lStatus = RegSetValueEx( hKey, "Position", 0, REG_SZ, ((BYTE *) ((CAxis2App*)AfxGetApp())->m_csPosition.GetBuffer(((CAxis2App*)AfxGetApp())->m_csPosition.GetLength())), ((CAxis2App*)AfxGetApp())->m_csPosition.GetLength() );
+		RegCloseKey(hKey);
 	}
-	RegCloseKey( hKey );
+
+	Shell_NotifyIcon(NIM_DELETE, &nid);
 }
 
-void CAxis2Dlg::UpdateTip()
+void CAxis2Dlg::OnTrayNotify(WPARAM wParam, LPARAM lParam)
 {
-	m_nid.cbSize = sizeof(m_nid);
-	m_nid.hWnd = this->GetSafeHwnd();
-	m_nid.uID = 1;
-	m_nid.uFlags = NIF_ICON | NIF_MESSAGE | NIF_TIP;
-	m_nid.uCallbackMessage = WM_USER;
-	m_nid.hIcon = m_hIcon;
-	CString csTip;
-	csTip.Format("%s (%s)", Main->GetVersionTitle(), Main->m_csCurrentProfile);
-	strcpy_s(m_nid.szTip,sizeof(m_nid.szTip), csTip);
-	Shell_NotifyIcon(NIM_MODIFY, &m_nid);
+	UINT uID;
+    UINT uMsg;
+
+    uID = (UINT) wParam;
+    uMsg = (UINT) lParam;
+
+	if (uMsg == WM_LBUTTONDBLCLK)
+	{
+		ShowWindow(SW_SHOWNORMAL);
+		SetForegroundWindow();
+	}
+	if (uMsg == WM_RBUTTONUP)
+	{
+		CMenu trayMenu;
+		trayMenu.CreatePopupMenu();
+		trayMenu.AppendMenu(MF_STRING, WM_TRAY_RESTORE, "Restore");
+		trayMenu.AppendMenu(MF_STRING, WM_TRAY_CLOSE, "Close");
+
+		CPoint pos;
+		GetCursorPos(&pos);
+		SetForegroundWindow();
+		trayMenu.TrackPopupMenu(TPM_RIGHTBUTTON, pos.x, pos.y, this, NULL);
+		PostMessage(WM_NULL, 0, 0);
+	}
 }
 
-void CAxis2Dlg::ReloadActiveTabPage()
+LRESULT CAxis2Dlg::WindowProc(UINT message, WPARAM wParam, LPARAM lParam)
 {
-	int active = this->GetActiveIndex();
-	this->SetActivePage(-1);
-	this->SetActivePage(active);
+	// TODO: Add your specialized code here and/or call the base class
+	if (message == WM_TRAY_NOTIFY)
+		OnTrayNotify(wParam, lParam);
+
+	return CPropertySheet::WindowProc(message, wParam, lParam);
 }
 
-//Settings Menu
+BOOL CAxis2Dlg::OnCommand(WPARAM wParam, LPARAM lParam)
+{
+	// TODO: Add your specialized code here and/or call the base class
+	if (wParam == WM_TRAY_RESTORE)
+	{
+		ShowWindow(SW_SHOWNORMAL);
+		SetForegroundWindow();
+	}
+	if (wParam == WM_TRAY_CLOSE)
+	{
+		CPropertySheet::OnClose();
+	}
 
-void CAxis2Dlg::OnOpenSettingsPage(int iPage)
+	return CPropertySheet::OnCommand(wParam, lParam);
+}
+
+void CAxis2Dlg::OnOpenSettingsPage(int iStartPage)
 {
 	CSettingsDlg dlg(CMsg("IDS_SETTINGS"));
-	dlg.m_psh.dwFlags = PSH_NOAPPLYNOW | PSH_PROPSHEETPAGE;
-	dlg.EnableStackedTabs( false );
-	dlg.AddPage(Main->m_pcppSetGeneral);
-	dlg.AddPage(Main->m_pcppSetPaths);
-	dlg.AddPage(Main->m_pcppSetItem);
-	dlg.AddPage(Main->m_pcppSetTravel);
-	dlg.AddPage(Main->m_pcppSetSpawn);
-	dlg.AddPage(Main->m_pcppSetOverridePaths);
+	dlg.AddPage(((CAxis2App*)AfxGetApp())->m_pcppSetGeneral);
+	dlg.AddPage(((CAxis2App*)AfxGetApp())->m_pcppSetPaths);
+	dlg.AddPage(((CAxis2App*)AfxGetApp())->m_pcppSetItem);
+	dlg.AddPage(((CAxis2App*)AfxGetApp())->m_pcppSetTravel);
+	dlg.AddPage(((CAxis2App*)AfxGetApp())->m_pcppSetSpawn);
+	dlg.AddPage(((CAxis2App*)AfxGetApp())->m_pcppSetOverridePaths);
 
-	dlg.SetActivePage(iPage);
-	dlg.DoModal();
+	if (iStartPage)
+		dlg.SetActivePage(iStartPage);
+
+	if (dlg.DoModal() == IDOK)
+	{
+		((CAxis2App*)AfxGetApp())->InitializeMulPaths();
+		((CAxis2App*)AfxGetApp())->UnLoadBodyDef();
+		((CAxis2App*)AfxGetApp())->UnLoadBodyConvert();
+		((CAxis2App*)AfxGetApp())->UnLoadHues();
+		((CAxis2App*)AfxGetApp())->UnLoadSounds();
+		((CAxis2App*)AfxGetApp())->UnLoadMusic();
+		((CAxis2App*)AfxGetApp())->LoadBodyDef();
+		((CAxis2App*)AfxGetApp())->LoadBodyConvert();
+		((CAxis2App*)AfxGetApp())->LoadHues();
+		((CAxis2App*)AfxGetApp())->LoadSounds();
+		((CAxis2App*)AfxGetApp())->LoadMusic();
+	}
 }
 
-void CAxis2Dlg::OnSettingsGeneral()
+void CAxis2Dlg::OnProfilesOpenprofile()
 {
-	OnOpenSettingsPage(0);
+	// TODO: Add your command handler code here
+	if (((CAxis2App*)AfxGetApp())->m_dlgProfile)
+		delete ((CAxis2App*)AfxGetApp())->m_dlgProfile;
+	((CAxis2App*)AfxGetApp())->m_dlgProfile = new CProfileDLG;
+	((CAxis2App*)AfxGetApp())->m_dlgProfile->Create(IDD_PROFILE_DLG);
+	((CAxis2App*)AfxGetApp())->m_dlgProfile->ShowWindow(SW_SHOWNORMAL);
 }
 
-void CAxis2Dlg::OnSettingsPaths()
+void CAxis2Dlg::OnProfilesUnload()
 {
-	OnOpenSettingsPage(1);
+	// TODO: Add your command handler code here
+	((CAxis2App*)AfxGetApp())->m_pScripts->UnloadProfile();
+	((CAxis2App*)AfxGetApp())->LoadIni(1);
+	((CAxis2App*)AfxGetApp())->LoadIni(2);
+	((CAxis2App*)AfxGetApp())->m_csCurrentProfile = CMsg(IDS_NONE);
+	((CAxis2App*)AfxGetApp())->UpdateProfileMenu();
+	((CAxis2App*)AfxGetApp())->UpdateProfileSettings();
 }
 
-void CAxis2Dlg::OnSettingsItem()
+void CAxis2Dlg::OnProfilesLoaddefault()
 {
-	OnOpenSettingsPage(2);
+	// TODO: Add your command handler code here
+	((CAxis2App*)AfxGetApp())->m_pScripts->UnloadProfile();
+	((CAxis2App*)AfxGetApp())->LoadIni(1);
+	((CAxis2App*)AfxGetApp())->LoadIni(2);
+	((CAxis2App*)AfxGetApp())->m_csCurrentProfile = ((CAxis2App*)AfxGetApp())->GetRegistryString("Default Profile");
+	((CAxis2App*)AfxGetApp())->m_pScripts->LoadProfile(((CAxis2App*)AfxGetApp())->m_csCurrentProfile);
+	((CAxis2App*)AfxGetApp())->UpdateProfileMenu();
+	((CAxis2App*)AfxGetApp())->UpdateProfileSettings();
 }
 
-void CAxis2Dlg::OnSettingsTravel()
+void CAxis2Dlg::OnProfilesLoadlastprofile()
 {
-	OnOpenSettingsPage(3);
-}
-
-void CAxis2Dlg::OnSettingsSpawn()
-{
-	OnOpenSettingsPage(4);
-}
-
-void CAxis2Dlg::OnSettingsOverridePaths()
-{
-	OnOpenSettingsPage(5);
-}
-
-
-//Profile Menu
-void CAxis2Dlg::OnOpenProfileOption()
-{
-	if (Main->m_dlgProfile)
-		delete Main->m_dlgProfile;
-	Main->m_dlgProfile = new CProfileDLG;
-	Main->m_dlgProfile->Create(IDD_PROFILE_DLG);
-}
-
-void CAxis2Dlg::OnUnloadProfile()
-{
-	Main->m_pScripts->UnloadProfile();
-	Main->LoadIni(1);
-	Main->LoadIni(2);
-	Main->m_csCurrentProfile = CMsg(IDS_NONE);
-	UpdateTip();
-	AfxBeginThread(LoadProfileThread,(LPVOID)0);
-}
-
-void CAxis2Dlg::OnLoadDefProfile()
-{
-	Main->m_pScripts->UnloadProfile();
-	Main->LoadIni(1);
-	Main->LoadIni(2);
-	Main->m_csCurrentProfile = Main->GetRegistryString("Default Profile");
-	UpdateTip();
-	AfxBeginThread(LoadProfileThread,(LPVOID)1);
-}
-
-void CAxis2Dlg::OnLoadLastProfile()
-{
-	Main->m_pScripts->UnloadProfile();
-	Main->LoadIni(1);
-	Main->LoadIni(2);
-	Main->m_csCurrentProfile = Main->GetRegistryString("Last Profile Loaded");
-	UpdateTip();
-	AfxBeginThread(LoadProfileThread,(LPVOID)0);
-}
-
-
-//Help Menu
-
-void CAxis2Dlg::OnHelp()
-{
-	HtmlHelp((DWORD_PTR)"Axis2.chm::/Welcome.htm", HH_DISPLAY_TOPIC);
-}
-
-void CAxis2Dlg::OnAboutDlg() 
-{
-	CAboutDlg dlg;
-	dlg.DoModal();
-}
-
-void CAxis2Dlg::OnClose() 
-{
-	PressButton(PSBTN_OK);
+	// TODO: Add your command handler code here
+	((CAxis2App*)AfxGetApp())->m_pScripts->UnloadProfile();
+	((CAxis2App*)AfxGetApp())->LoadIni(1);
+	((CAxis2App*)AfxGetApp())->LoadIni(2);
+	((CAxis2App*)AfxGetApp())->m_csCurrentProfile = ((CAxis2App*)AfxGetApp())->GetRegistryString("Last Profile Loaded");
+	((CAxis2App*)AfxGetApp())->m_pScripts->LoadProfile(((CAxis2App*)AfxGetApp())->m_csCurrentProfile);
+	((CAxis2App*)AfxGetApp())->UpdateProfileMenu();
+	((CAxis2App*)AfxGetApp())->UpdateProfileSettings();
 }

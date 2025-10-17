@@ -1,47 +1,27 @@
-/*
-
- **********************************************************************
- *
- * Original Axis by:
- * Copyright (C) Philip A. Esterle 1998-2002 + (C) parts Adron 2002
- *
- * 55r,56(x) Mods, and Axis2 re-build by:
- * Copyright (C) Benoit Croussette 2004-2006
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of version 2 of the GNU General Public License as
- * published by the Free Software Foundation.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- **********************************************************************
-
-*/
-
 // CommandsTab.cpp : implementation file
 //
 
 #include "stdafx.h"
 #include "Axis2.h"
 #include "CommandsTab.h"
-#include "Common.h"
-#include "TabCtrl.h"
 
+#ifdef _DEBUG
+#define new DEBUG_NEW
+#undef THIS_FILE
+static char THIS_FILE[] = __FILE__;
+#endif
 
-// CCommandsTab dialog
+/////////////////////////////////////////////////////////////////////////////
+// CCommandsTab property page
 
-IMPLEMENT_DYNAMIC(CCommandsTab, CDockingPage)
+IMPLEMENT_DYNCREATE(CCommandsTab, CPropertyPage)
 
-int CCommandsTab::iEditBtn = 0;
-int CCommandsTab::iRemoveBtn = 0;
-
-CCommandsTab::CCommandsTab() : CDockingPage(CCommandsTab::IDD,CMsg("IDS_COMMANDS"))
+CCommandsTab::CCommandsTab() : CPropertyPage(CCommandsTab::IDD)
 {
 	//{{AFX_DATA_INIT(CCommandsTab)
+	m_csCommand = _T("");
 	//}}AFX_DATA_INIT
+	m_iHistory = 0;
 }
 
 CCommandsTab::~CCommandsTab()
@@ -50,315 +30,137 @@ CCommandsTab::~CCommandsTab()
 
 void CCommandsTab::DoDataExchange(CDataExchange* pDX)
 {
-	CDockingPage::DoDataExchange(pDX);
+	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CCommandsTab)
-	DDX_Control(pDX, IDC_TAB, m_ctTab);
-	DDX_Control(pDX, IDC_CAPTION, m_ceCaption);
-	DDX_Control(pDX, IDC_COMMAND, m_ceCommand);
-	DDX_Control(pDX, IDC_TABTEXT, m_ceTabText);
+	DDX_Control(pDX, IDC_COMMAND, m_Command);
+	DDX_Control(pDX, IDC_COMMANDLIST, m_CommandList);
+	DDX_Text(pDX, IDC_COMMAND, m_csCommand);
 	//}}AFX_DATA_MAP
 }
 
 
-BEGIN_MESSAGE_MAP(CCommandsTab, CDockingPage)
-	//{{AFX_DATA_MAP(CCommandsTab)
-	ON_BN_CLICKED(IDC_ADDTAB, OnAddtab)
-	ON_BN_CLICKED(IDC_DELTAB, OnDeltab)
-	ON_BN_CLICKED(IDC_CLEARTAB, OnCleartab)
-	ON_BN_CLICKED(IDC_ADDBTN, OnAddbutton)
-	ON_BN_CLICKED(IDC_EDITBTN, OnEditbutton)
-	ON_BN_CLICKED(IDC_REMOVEBTN, OnRemovebutton)
-	ON_MESSAGE(WM_BUTTONPRESSED,ButtonPressed)
-	//}}AFX_DATA_MAP
+BEGIN_MESSAGE_MAP(CCommandsTab, CPropertyPage)
+	//{{AFX_MSG_MAP(CCommandsTab)
+	ON_BN_CLICKED(IDC_SEND, OnSend)
+	ON_WM_CTLCOLOR()
+	ON_LBN_DBLCLK(IDC_COMMANDLIST, OnDblclkCommandlist)
+	ON_EN_VSCROLL(IDC_COMMAND, OnVscrollCommand)
+	ON_WM_KEYDOWN()
+	ON_WM_KEYUP()
+	ON_EN_CHANGE(IDC_COMMAND, OnChangeCommand)
+	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
-// CSpawnTab message handlers
+// CCommandsTab message handlers
 
-BOOL CCommandsTab::OnInitDialog() 
+void CCommandsTab::OnSend()
 {
-	m_dcPropertyPage = Main->m_pcppCommandsTab;
-	if(m_bModifyDlgStylesAndPos == false)
-		m_dcDialogPage = new CCommandsTab;
-	Main->m_pcppCommandsTab->m_dcCurrentPage = this;
+	// TODO: Add your control notification handler code here
+	UpdateData(true);
+	CString csCmd;
+	csCmd.Format("%s%s", ((CAxis2App*)AfxGetApp())->m_csCommandPrefix, m_csCommand);
 
-	CDockingPage::OnInitDialog();
+	if (((CAxis2App*)AfxGetApp())->m_pRConsole)
+		((CAxis2App*)AfxGetApp())->m_pRConsole->Send(csCmd);
 
-	iNextID = 10000;
-	LONG lStatus;
-	HKEY hKey;
-	m_ctTab.Init();
-	Main->GetRegistryMultiSz("Command Tabs", &csaTabs, hRegLocation, REGKEY_COMMANDS);
-		if ( csaTabs.GetSize() > 0 )
-		{
-			for ( int i = 0; i <= csaTabs.GetUpperBound(); i++ )
-			{
-				int iIndex = 0;
-				m_ctTab.InsertItem(i, csaTabs.GetAt(i));
-				CString csKey;
-				csKey.Format("%s\\%s",REGKEY_COMMANDS ,csaTabs.GetAt(i));
-				lStatus = RegOpenKeyEx(hRegLocation, csKey, 0, KEY_ALL_ACCESS, &hKey);
-				if ( lStatus == ERROR_SUCCESS )
-				{
-					while (lStatus == ERROR_SUCCESS)
-					{
-						char szBuffer[MAX_PATH];
-						DWORD dwSize = sizeof(szBuffer);
-						DWORD dwType;
-						unsigned char szData[MAX_PATH];
-						DWORD dwDataSize = sizeof(szData);
-						lStatus = RegEnumValue( hKey, iIndex, &szBuffer[0], &dwSize, 0, &dwType, &szData[0], &dwDataSize );
-						if (lStatus == ERROR_SUCCESS)
-						{
-							m_ctTab.CreateButton(szBuffer,iNextID,i,0,0,0,72);
-							iNextID++;
-						}
-						iIndex++;
-					}
-					RegCloseKey(hKey);
-				}
-				m_ctTab.SortButtons(i);
-			}
-		}
-		else
-		{
-			m_ctTab.InsertItem(0, "Misc");
-			csaTabs.InsertAt(0, "Misc");
-			Main->PutRegistryMultiSz("Command Tabs", &csaTabs, hRegLocation, REGKEY_COMMANDS);
-		}
-	return TRUE;
+	m_saHistory.Add(m_csCommand);
+	m_iHistory = m_saHistory.GetUpperBound();
+
+	m_Command.SetWindowText("");
 }
 
-void CCommandsTab::OnAddtab()
+BOOL CCommandsTab::OnInitDialog()
 {
-	iEditBtn = 0;
-	iRemoveBtn = 0;
-	int i = m_ctTab.GetCurFocus()+1;
-	CString csLabel, csError;
-	m_ceTabText.GetWindowText(csLabel);
-	if (csLabel == "")
-	{
-		AfxMessageBox("You must enter a Label", MB_ICONSTOP);
-		return;
-	}
+	CPropertyPage::OnInitDialog();
 
-	if ( csaTabs.GetSize() > 0 )
+	// TODO: Add extra initialization here
+	m_dcPropertyPage = ((CAxis2App*)AfxGetApp())->m_pcppCommandsTab;
+
+	if (m_dcCurrentPage == this)
+		((CAxis2App*)AfxGetApp())->m_pcppCommandsTab->m_dcCurrentPage = this;
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
+}
+
+HBRUSH CCommandsTab::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+	HBRUSH hbr = CPropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
+
+	// TODO: Change any attributes of the DC here
+	pDC->SetBkMode(TRANSPARENT);
+	pDC->SetTextColor(RGB(255,255,255));
+
+	// TODO: Return a different brush if the default is not desired
+	return ((CAxis2App*)AfxGetApp())->m_bkbrush;
+}
+
+void CCommandsTab::OnDblclkCommandlist()
+{
+	// TODO: Add your control notification handler code here
+	int iSel = m_CommandList.GetCurSel();
+	if ( iSel == -1 )
+		return;
+
+	CString csCmd;
+	m_CommandList.GetText(iSel, csCmd);
+
+	m_Command.SetWindowText(csCmd);
+}
+
+BOOL CCommandsTab::PreTranslateMessage(MSG* pMsg)
+{
+	// TODO: Add your specialized code here and/or call the base class
+	if (pMsg->message == WM_KEYDOWN)
 	{
-		for ( int i = 0; i <= csaTabs.GetUpperBound(); i++ )
+		if (pMsg->wParam == VK_UP)
 		{
-			if(csaTabs.GetAt(i) == csLabel)
-			{
-				csError.Format("Tab '%s' already exists" , csLabel);
-				AfxMessageBox(csError, MB_ICONSTOP);
-				return;
-			}
+			if ( m_iHistory > 0 )
+				m_iHistory--;
+			m_Command.SetWindowText(m_saHistory.GetAt(m_iHistory));
+		}
+		if (pMsg->wParam == VK_DOWN)
+		{
+			if ( m_iHistory < m_saHistory.GetUpperBound() )
+				m_iHistory++;
+			m_Command.SetWindowText(m_saHistory.GetAt(m_iHistory));
+		}
+		if (pMsg->wParam == VK_RETURN)
+		{
+			OnSend();
 		}
 	}
 
-	m_ctTab.InsertItem(i, csLabel);
-	m_ctTab.SpreadTabs(i);
-	m_ctTab.SetCurSel(i);
-	m_ctTab.ShowTab(i);
-	csaTabs.InsertAt(i, csLabel);
-	Main->PutRegistryMultiSz("Command Tabs", &csaTabs, hRegLocation, REGKEY_COMMANDS);
+	return CPropertyPage::PreTranslateMessage(pMsg);
 }
 
-void CCommandsTab::OnDeltab()
+void CCommandsTab::OnVscrollCommand()
 {
-	iEditBtn = 0;
-	iRemoveBtn = 0;
-	if ( csaTabs.GetSize() == 1 )
-	{
-		AfxMessageBox("You can't delete the last tab", MB_ICONSTOP);
-		return;
-	}
-
-	int i = m_ctTab.GetCurFocus();
-	if (m_ctTab.GetCurFocus() == -1)
-	{
-		AfxMessageBox("No tab selected", MB_ICONSTOP);
-		return;
-	}
-	CString csMsg;
-	csMsg.Format("Are you sure you want to delete the \"%s\" Tab?", csaTabs.GetAt(i));
-	if ( AfxMessageBox( csMsg, MB_OKCANCEL | MB_ICONQUESTION) == IDCANCEL )
-		return;
-	CString csKey;
-	csKey.Format("%s\\%s",REGKEY_COMMANDS ,csaTabs.GetAt(i));
-	Main->DeleteRegistryKey(csKey);
-	m_ctTab.ClearTab(i);
-	m_ctTab.ResetTab(i);
-	m_ctTab.DeleteItem(i);
-	m_ctTab.SetCurSel(i);
-
-	if (m_ctTab.GetCurFocus() == -1)
-		m_ctTab.SetCurSel(i-1);
-
-	m_ctTab.FocusTab(m_ctTab.GetCurFocus());
-	csaTabs.RemoveAt(i);
-	Main->PutRegistryMultiSz("Command Tabs", &csaTabs, hRegLocation, REGKEY_COMMANDS);
+	// TODO: Add your control notification handler code here
 }
 
-void CCommandsTab::OnCleartab()
+void CCommandsTab::OnKeydown(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-	iEditBtn = 0;
-	iRemoveBtn = 0;
-	int i = m_ctTab.GetCurFocus();
-	if (m_ctTab.GetCurFocus() == -1)
-	{
-		AfxMessageBox("No tab selected", MB_ICONSTOP);
-		return;
-	}
-	CString csMsg;
-	csMsg.Format("Are you sure you want to clear the \"%s\" Tab?", csaTabs.GetAt(i));
-	if ( AfxMessageBox( csMsg, MB_OKCANCEL | MB_ICONQUESTION) == IDCANCEL )
-		return;
-	CString csKey;
-	csKey.Format("%s\\%s",REGKEY_COMMANDS, csaTabs.GetAt(i));
-	Main->DeleteRegistryKey(csKey);
-	m_ctTab.ClearTab(i);
+	// TODO: Add your message handler code here and/or call default
+
+	CPropertyPage::OnKeydown(nChar, nRepCnt, nFlags);
 }
 
-void CCommandsTab::OnAddbutton()
+void CCommandsTab::OnKeyup(UINT nChar, UINT nRepCnt, UINT nFlags)
 {
-	iEditBtn = 0;
-	iRemoveBtn = 0;
-	if (m_ctTab.GetCurFocus() == -1)
-	{
-		AfxMessageBox("No tab selected", MB_ICONSTOP);
-		return;
-	}
-	if (m_ctTab.GetButtonCount(m_ctTab.GetCurFocus()) >= 36)
-	{
-		AfxMessageBox("Tab is Full", MB_ICONSTOP);
-		return;
-	}
-	CString csCaption, csCommand, csKey, csTab;
-	m_ceCaption.GetWindowText(csCaption);
-	m_ceCommand.GetWindowText(csCommand);
-	if (csCaption == "")
-	{
-		AfxMessageBox("You must enter a caption", MB_ICONSTOP);
-		return;
-	}
-	if (csCommand == "")
-	{
-		AfxMessageBox("You must enter a command", MB_ICONSTOP);
-		return;
-	}
+	// TODO: Add your message handler code here and/or call default
 
-	csTab = csaTabs.GetAt(m_ctTab.GetCurFocus());
-	csKey.Format("%s\\%s", REGKEY_COMMANDS, csTab);
-
-	LONG lStatus;
-	HKEY hKey;
-	int iIndex = 0;
-	lStatus = RegOpenKeyEx(hRegLocation, csKey, 0, KEY_ALL_ACCESS, &hKey);
-	if ( lStatus == ERROR_SUCCESS )
-	{
-		while (lStatus == ERROR_SUCCESS)
-		{
-			char szBuffer[MAX_PATH];
-			DWORD dwSize = sizeof(szBuffer);
-			DWORD dwType;
-			unsigned char szData[MAX_PATH];
-			DWORD dwDataSize = sizeof(szData);
-			lStatus = RegEnumValue( hKey, iIndex, &szBuffer[0], &dwSize, 0, &dwType, &szData[0], &dwDataSize );
-			if (lStatus == ERROR_SUCCESS)
-			{
-				if (csCaption == szBuffer)
-				{
-					AfxMessageBox("This button already exist on this tab", MB_ICONSTOP);
-					return;
-				}
-			}
-			iIndex++;
-		}
-		RegCloseKey(hKey);
-	}
-
-	m_ctTab.CreateButton(csCaption,iNextID,m_ctTab.GetCurFocus(),0,0,0,72);
-	m_ctTab.SortButtons(m_ctTab.GetCurFocus());
-
-	Main->PutRegistryString(csCaption, csCommand, hRegLocation, csKey);
-	iNextID++;
+	CPropertyPage::OnKeyup(nChar, nRepCnt, nFlags);
 }
 
-void CCommandsTab::OnEditbutton()
+void CCommandsTab::OnChangeCommand()
 {
-	iRemoveBtn = 0;
-	if (m_ctTab.GetButtonCount(m_ctTab.GetCurFocus()) == 0)
-	{
-		AfxMessageBox("No button to edit", MB_ICONSTOP);
-		return;
-	}
-	if ( AfxMessageBox( "Select a button to edit", MB_OKCANCEL | MB_ICONQUESTION) == IDCANCEL )
-	{
-		iEditBtn = 0;
-		return;
-	}
-	iEditBtn = 1;
-}
+	// TODO: If this is a RICHEDIT control, the control will not
+	// send this notification unless you override the CPropertyPage::OnInitDialog()
+	// function and call CRichEditCtrl().SetEventMask()
+	// with the ENM_CHANGE flag ORed into the mask.
 
-void CCommandsTab::OnRemovebutton()
-{
-	iEditBtn = 0;
-	if (m_ctTab.GetButtonCount(m_ctTab.GetCurFocus()) == 0)
-	{
-		AfxMessageBox("No button to remove", MB_ICONSTOP);
-		return;
-	}
-	if ( AfxMessageBox( "Select a button to remove", MB_OKCANCEL | MB_ICONQUESTION) == IDCANCEL )
-	{
-		iRemoveBtn = 0;
-		return;
-	}
-	iRemoveBtn = 1;
-}
-
-LRESULT CCommandsTab::ButtonPressed(WPARAM w, LPARAM l)
-{
-	UNREFERENCED_PARAMETER(l);
-	CString csCaption, csCmd, csTab, csKey;
-	m_ctTab.GetDlgItem((int)w)->GetWindowText(csCaption);
-	csTab = csaTabs.GetAt(m_ctTab.GetCurFocus());
-	csKey.Format("%s\\%s", REGKEY_COMMANDS, csTab);
-
-	if (iEditBtn == 1)
-	{	
-		//Delete old button
-		Main->DeleteRegistryValue(csCaption, csKey, hRegLocation);
-
-		//Add new button
-		m_ceCaption.GetWindowText(csCaption);
-		m_ceCommand.GetWindowText(csCmd);
-		Main->PutRegistryString(csCaption, csCmd, hRegLocation, csKey);
-		m_ctTab.GetDlgItem((int)w)->SetWindowText(csCaption);
-		iEditBtn = 0;
-		return 0;
-	}
-
-	if (iRemoveBtn == 1)
-	{	
-		CString csMsg;
-		csMsg.Format("Are you sure you want to remove the \"%s\" Button?", csCaption);
-		if ( AfxMessageBox( csMsg, MB_OKCANCEL | MB_ICONQUESTION) == IDCANCEL )
-		{
-			iRemoveBtn = 0;
-			return 0;
-		}
-		//Delete button
-		Main->DeleteRegistryValue(csCaption, csKey, hRegLocation);
-		m_ctTab.RemoveButton((int) w);
-		m_ctTab.SortButtons(m_ctTab.GetCurFocus());
-		iRemoveBtn = 0;
-		return 0;
-	}
-
-	csCmd = Main->GetRegistryString(csCaption, "", hRegLocation, csKey);
-	m_ceCaption.SetWindowText(csCaption);
-	m_ceCommand.SetWindowText(csCmd);
-	SendToUO(csCmd);
+	// TODO: Add your control notification handler code here
 	
-	return 0;
 }

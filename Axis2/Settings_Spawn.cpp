@@ -1,26 +1,3 @@
-/*
-
- **********************************************************************
- *
- * Original Axis by:
- * Copyright (C) Philip A. Esterle 1998-2002 + (C) parts Adron 2002
- *
- * 55r,56(x) Mods, and Axis2 re-build by:
- * Copyright (C) Benoit Croussette 2004-2006
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of version 2 of the GNU General Public License as
- * published by the Free Software Foundation.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- **********************************************************************
-
-*/
-
 // Settings_Spawn.cpp : implementation file
 //
 
@@ -42,102 +19,90 @@ IMPLEMENT_DYNCREATE(CSettingsSpawn, CPropertyPage)
 CSettingsSpawn::CSettingsSpawn() : CPropertyPage(CSettingsSpawn::IDD)
 {
 	//{{AFX_DATA_INIT(CSettingsSpawn)
+	m_bShowItems = FALSE;
+	m_bShowMap = FALSE;
 	m_bShowNPCs = FALSE;
-	//}}AFX_DATA_INIT
-}
-
+	m_bShowSpawnPoints = FALSE;
+	//}}AFX_DATA_INIT}
 
 CSettingsSpawn::~CSettingsSpawn()
 {
 }
 
-
 void CSettingsSpawn::DoDataExchange(CDataExchange* pDX)
 {
 	CPropertyPage::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CSettingsSpawn)
-	DDX_Check(pDX, IDC_NPCVIEW, m_bShowNPCs);
-	DDX_Control(pDX, IDC_SPAWNBG_COLOR, m_csBGColor);
+	DDX_Control(pDX, IDC_SPAWNBGCOLOR, m_SpawnBGColor);
+	DDX_Control(pDX, IDC_NPCSPAWNCOLOR, m_NPCSpawnColor);
+	DDX_Control(pDX, IDC_ITEMSPAWNCOLOR, m_ItemSpawnColor);
+	DDX_Check(pDX, IDC_SHOWITEMS, m_bShowItems);
+	DDX_Check(pDX, IDC_SHOWMAP, m_bShowMap);
+	DDX_Check(pDX, IDC_SHOWNSPS, m_bShowNPCs);
+	DDX_Check(pDX, IDC_SHOWSPAWNPOINTS, m_bShowSpawnPoints);
 	//}}AFX_DATA_MAP
 }
 
 
 BEGIN_MESSAGE_MAP(CSettingsSpawn, CPropertyPage)
 	//{{AFX_MSG_MAP(CSettingsSpawn)
-	ON_BN_CLICKED(IDC_NPCVIEW, OnShowNPCs)
-	ON_BN_CLICKED(IDC_RESET_SPAWN, OnResetTab)
-	ON_BN_CLICKED(IDC_SPAWNBG_COLOR, OnBGColor)
-	ON_WM_PAINT()
+	ON_WM_CTLCOLOR()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 // CSettingsSpawn message handlers
 
-BOOL CSettingsSpawn::OnInitDialog() 
+HBRUSH CSettingsSpawn::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+	HBRUSH hbr = CPropertyPage::OnCtlColor(pDC, pWnd, nCtlColor);
+
+	// TODO: Change any attributes of the DC here
+	pDC->SetBkMode(TRANSPARENT);
+	pDC->SetTextColor(RGB(255,255,255));
+
+	// TODO: Return a different brush if the default is not desired
+	return ((CAxis2App*)AfxGetApp())->m_bkbrush;
+}
+
+BOOL CSettingsSpawn::OnApply()
+{
+	// TODO: Add specialized code here and/or call the base class
+	UpdateData(true);
+	((CAxis2App*)AfxGetApp())->m_dwShowSpawnpoints = m_bShowSpawnPoints;
+	((CAxis2App*)AfxGetApp())->m_dwNPCSpawnColor = m_NPCSpawnColor.GetColor();
+	((CAxis2App*)AfxGetApp())->m_dwItemSpawnColor = m_ItemSpawnColor.GetColor();
+	((CAxis2App*)AfxGetApp())->m_dwSpawnBGColor = m_SpawnBGColor.GetColor();
+	((CAxis2App*)AfxGetApp())->m_dwShowItems = m_bShowItems;
+	((CAxis2App*)AfxGetApp())->m_dwShowNPCs = m_bShowNPCs;
+	((CAxis2App*)AfxGetApp())->m_dwShowMap = m_bShowMap;
+
+	((CAxis2App*)AfxGetApp())->PutRegistryDword("ShowSpawnpoints", m_bShowSpawnPoints);
+	((CAxis2App*)AfxGetApp())->PutRegistryDword("NPCSpawnColor", ((CAxis2App*)AfxGetApp())->m_dwNPCSpawnColor);
+	((CAxis2App*)AfxGetApp())->PutRegistryDword("ItemSpawnColor", ((CAxis2App*)AfxGetApp())->m_dwItemSpawnColor);
+	((CAxis2App*)AfxGetApp())->PutRegistryDword("SpawnBGColor", ((CAxis2App*)AfxGetApp())->m_dwSpawnBGColor);
+	((CAxis2App*)AfxGetApp())->PutRegistryDword("ShowItems", m_bShowItems);
+	((CAxis2App*)AfxGetApp())->PutRegistryDword("ShowNPCs", m_bShowNPCs);
+	((CAxis2App*)AfxGetApp())->PutRegistryDword("ShowMap", m_bShowMap);
+
+	return CPropertyPage::OnApply();
+}
+
+BOOL CSettingsSpawn::OnInitDialog()
 {
 	CPropertyPage::OnInitDialog();
 
-	m_bShowNPCs = (BOOL) Main->m_dwShowNPCs;
-
-	m_dwSpawnBGColor = Main->m_dwSpawnBGColor;
+	// TODO: Add extra initialization here
+	m_bShowSpawnPoints = ((CAxis2App*)AfxGetApp())->m_dwShowSpawnpoints;
+	m_NPCSpawnColor.SetColor(((CAxis2App*)AfxGetApp())->m_dwNPCSpawnColor);
+	m_ItemSpawnColor.SetColor(((CAxis2App*)AfxGetApp())->m_dwItemSpawnColor);
+	m_SpawnBGColor.SetColor(((CAxis2App*)AfxGetApp())->m_dwSpawnBGColor);
+	m_bShowItems = ((CAxis2App*)AfxGetApp())->m_dwShowItems;
+	m_bShowNPCs = ((CAxis2App*)AfxGetApp())->m_dwShowNPCs;
+	m_bShowMap = ((CAxis2App*)AfxGetApp())->m_dwShowMap;
 
 	UpdateData(false);
 
-	return TRUE;
-}
-
-void CSettingsSpawn::OnShowNPCs()
-{
-	UpdateData();
-	Main->PutRegistryDword("ShowNPCs", m_bShowNPCs);
-	Main->m_dwShowNPCs = m_bShowNPCs;
-}
-
-void CSettingsSpawn::OnResetTab()
-{
-	if ( AfxMessageBox( "Are you sure you want to reset the Spawn settings to default?", MB_OKCANCEL | MB_ICONQUESTION) == IDCANCEL )
-		return;
-
-	Main->LoadIni(0,"ShowNPCs");
-	m_bShowNPCs = (BOOL) Main->m_dwShowNPCs;
-	Main->PutRegistryDword("ShowNPCs", m_bShowNPCs);
-	Main->LoadIni(0,"SpawnBGColor");
-	m_dwSpawnBGColor = Main->m_dwSpawnBGColor;
-	Main->PutRegistryDword("SpawnBGColor", m_dwSpawnBGColor);
-	SendMessage( WM_PAINT );
-	UpdateData(false);
-}
-
-void CSettingsSpawn::OnBGColor() 
-{
-	CColorDialog colors;
-	if ( colors.DoModal() == IDOK )
-		m_dwSpawnBGColor = colors.GetColor();
-	SendMessage( WM_PAINT );
-	Main->PutRegistryDword("SpawnBGColor", m_dwSpawnBGColor);
-	Main->m_dwSpawnBGColor = m_dwSpawnBGColor;
-}
-
-void CSettingsSpawn::OnPaint() 
-{
-	CPaintDC dc(this); // device context for painting
-
-	CDC * pDC = m_csBGColor.GetDC();
-	CRgn rgn;
-	CRect rect;
-	m_csBGColor.GetWindowRect( &rect );
-	CBrush * pNewBrush = new (CBrush);
-	pNewBrush->CreateSolidBrush( (COLORREF) m_dwSpawnBGColor );
-	CBrush * pOldBrush = pDC->SelectObject(pNewBrush);
-	CRect cr;
-	m_csBGColor.GetClientRect(&cr);
-	rgn.CreateRectRgnIndirect(cr);
-	pDC->SelectClipRgn(&rgn);
-	pDC->FillRect(cr, pNewBrush);
-	pDC->SelectObject(pOldBrush);
-	delete (pNewBrush);
-	rgn.DeleteObject();
-	m_csBGColor.ReleaseDC( pDC );
-
+	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
 }

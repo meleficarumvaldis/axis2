@@ -12,7 +12,9 @@
 #define new DEBUG_NEW
 #endif
 
-CAxis2App * Main;
+// VERALTET: Globales App-Objekt. Wird durch AfxGetApp() oder 'theApp' ersetzt.
+// CAxis2App * Main;
+
 /////////////////////////////////////////////////////////////////////////////
 // CAxis2App
 
@@ -22,10 +24,13 @@ END_MESSAGE_MAP()
 
 
 // CAxis2App construction
-
+/**
+ * @brief Konstruktor der CAxis2App-Klasse.
+ * Initialisiert die Anwendungsvariablen.
+ */
 CAxis2App::CAxis2App()
 {
-	Main = this;
+	// Main = this; // VERALTET: Nicht mehr benötigt, 'theApp' oder 'AfxGetApp()' verwenden.
 	EnableHtmlHelp();
 	m_pcppAxisLogTab = NULL;
 	m_pRConsole = NULL;
@@ -33,11 +38,17 @@ CAxis2App::CAxis2App()
 }
 
 // The one and only CAxis2App object
-
+// Das einzige CAxis2App-Objekt
 CAxis2App theApp;
 
 // CAxis2App initialization
-
+/**
+ * @brief Initialisiert die Anwendungsinstanz.
+ * Diese Funktion wird beim Start der Anwendung aufgerufen. Sie initialisiert die Sockets,
+ * lädt Einstellungen aus der Registry und INI-Dateien, erstellt die UI-Tabs und startet
+ * Hintergrund-Threads.
+ * @return BOOL TRUE bei Erfolg, FALSE bei einem Fehler.
+ */
 BOOL CAxis2App::InitInstance()
 {
 	INITCOMMONCONTROLSEX InitCtrls;
@@ -56,22 +67,25 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Set Application Root Path
+	// ANMERKUNG: Setzt den Stammpfad der Anwendung.
 	TCHAR str[MAX_PATH];
 	GetModuleFileName(NULL, str, MAX_PATH);
 	CString strDir(str);
 	m_csRootDirectory = strDir.Left(strDir.ReverseFind(_T('\\'))+1);
 
 	//Load Language File
+	// ANMERKUNG: Lädt die Sprachdatei.
 	LoadLang();
 
 	m_pcppAxisLogTab = new CLogTab;
 	m_pcppAxisLogTab->m_dcCurrentPage = m_pcppAxisLogTab;
 	m_pScripts = new CScriptObjects;
-	m_log.Add(0,CFMsg(CMsg("IDS_START"), Main->GetVersionTitle(), Main->GetBuildTimestamp()));
+	m_log.Add(0,CFMsg(CMsg("IDS_START"), GetVersionTitle(), GetBuildTimestamp()));
 	m_csCurrentProfile = CMsg("IDS_NONE");
 
 	//*******************************
 	// Load the Default settings
+	// ANMERKUNG: Lädt die Standardeinstellungen aus der INI-Datei.
 	m_log.Add(0,CMsg("IDS_LOADDEFAULT"));
 	LoadIni();
 	if (!hRegLocation)
@@ -82,6 +96,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Load the Registry settings
+	// ANMERKUNG: Lädt Einstellungen aus der Windows-Registrierung.
 	HKEY hKey;
 	if ( RegOpenKeyEx(hRegLocation, REGKEY_AXIS, 0, KEY_READ, &hKey) == ERROR_SUCCESS )
 	{
@@ -113,6 +128,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Find the path to the UO client
+	// ANMERKUNG: Sucht den Pfad zum UO-Client.
 	m_log.Add(0,CMsg("IDS_CLIENTINST"));
 	csUOPath = GetRegistryString("Default Client", "");
 
@@ -127,6 +143,7 @@ BOOL CAxis2App::InitInstance()
 	{
 	//*******************************
 	// Check Client info
+	// ANMERKUNG: Überprüft die Client-Informationen.
 	m_pClient = new CClientInfo;
 	m_pClient->SetClientBuffer();
 	m_log.Add(0,CFMsg(CMsg("IDS_CLIENTVER"), m_pClient->GetClientVersion()));
@@ -137,7 +154,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Find the path to the UO Mul files
-
+	// ANMERKUNG: Sucht den Pfad zu den UO Mul-Dateien.
 	csMulPath = GetRegistryString("Default MulPath", "");
 
 	if ((( csMulPath == "" ) || (m_dwSameAsClient))&&( csUOPath != "" ))
@@ -161,7 +178,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Find Default Profile Path
-
+	// ANMERKUNG: Sucht den Standard-Profilpfad.
 	csProfilePath = GetRegistryString("Default ProfilePath", "");
 	if ( csProfilePath == "" )
 	{
@@ -177,7 +194,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Load Mul files
-
+	// ANMERKUNG: Lädt die .mul-Dateien (Spieldateien).
 	InitializeMulPaths();
 	LoadBodyDef();
 	LoadBodyConvert();
@@ -187,6 +204,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Check for multiple instances
+	// ANMERKUNG: Prüft auf mehrfache Instanzen der Anwendung.
 	m_log.Add(0,CMsg("IDS_MULTIPLE_INSTANCES"));
 	if (!m_dwAllowMultiple)
 	{
@@ -196,12 +214,13 @@ BOOL CAxis2App::InitInstance()
 		}
 	}
 
-	CAxis2Dlg dlg(CFMsg(CMsg("IDS_AXISTITLE"), Main->GetVersionTitle()));
+	CAxis2Dlg dlg(CFMsg(CMsg("IDS_AXISTITLE"), GetVersionTitle()));
 	dlg.m_psh.dwFlags = PSH_HASHELP | PSH_NOAPPLYNOW | PSH_PROPSHEETPAGE;
 	dlg.EnableStackedTabs( false );
 
 	//*******************************
 	// Create Tabs
+	// ANMERKUNG: Erstellt die einzelnen Tabs der Benutzeroberfläche.
 	m_log.Add(0,CMsg("IDS_CREATE_TABS"));
 
 	m_pcppGeneralTab = new CGeneralTab;
@@ -217,6 +236,7 @@ BOOL CAxis2App::InitInstance()
 	m_pcppMiscTab = new CMiscTab;
 
 	//Settings Pages
+	// ANMERKUNG: Erstellt die Einstellungsseiten.
 	m_pcppSetGeneral = new CSettingsGeneral;
 	m_pcppSetPaths = new CSettingsPaths;
 	m_pcppSetItem = new CSettingsItem;
@@ -243,6 +263,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	//Check what tab we start with
+	// ANMERKUNG: Legt fest, welcher Tab beim Start aktiv ist.
 	if (m_dwStartTab != -1)
 	{
 		switch(m_dwStartTab)
@@ -291,6 +312,7 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Check to see if it the first time we run Axis
+	// ANMERKUNG: Prüft, ob die Anwendung zum ersten Mal gestartet wird.
 #ifndef _DEBUG
 	if ( m_dwInitiallize == 1 )
 	{
@@ -307,22 +329,26 @@ BOOL CAxis2App::InitInstance()
 
 	//*******************************
 	// Loading default profile
+	// ANMERKUNG: Lädt das Standardprofil in einem separaten Thread.
 	if (m_dwLoadDefault)
 		AfxBeginThread(LoadProfileThread,(LPVOID)1);
 
 
 	//*******************************
 	//Start Reminder Thread
+	// ANMERKUNG: Startet den Erinnerungs-Thread.
 	AfxBeginThread(Reminder,NULL);
 
 
 	//New Toolbar version
+	// ANMERKUNG: Erstellt die Toolbar.
 	m_dlgToolBar = new CAxis2LBar;
 	m_dlgToolBar->Create(IDD_TOOLBAR);
 	m_dlgToolBar->ShowWindow(SW_HIDE);
 
 	//*******************************
 	//Finish Loading
+	// ANMERKUNG: Schließt den Ladevorgang ab und zeigt das Hauptfenster an.
 	m_log.Add(0,CMsg("IDS_LOADFINISH"));
 	m_pcppAxisLogTab->SetVisible(true);
 	INT_PTR nResponse = dlg.DoModal();
@@ -336,6 +362,10 @@ BOOL CAxis2App::InitInstance()
 	return TRUE;
 }
 
+/**
+ * @brief Destruktor der CAxis2App-Klasse.
+ * Gibt alle allozierten Ressourcen frei.
+ */
 CAxis2App::~CAxis2App()
 {
 	if ( m_pScripts )
@@ -392,9 +422,15 @@ CAxis2App::~CAxis2App()
 
 //////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Verarbeitet Tastatureingaben vor der Weiterleitung an das Fenster.
+ * Fängt die ESC-Taste ab, um das Schließen der Anwendung zu verhindern.
+ * @param pMsg Zeiger auf eine MSG-Struktur mit der Nachricht.
+ * @return BOOL TRUE, wenn die Nachricht verarbeitet wurde, andernfalls FALSE.
+ */
 BOOL CAxis2App::PreTranslateMessage(MSG* pMsg) 
 {
-	if ((pMsg->message == 256) && (pMsg->wParam == 27))
+	if ((pMsg->message == WM_KEYDOWN) && (pMsg->wParam == VK_ESCAPE))
 	{
 		// this is the escape key
 		return (TRUE);
@@ -402,6 +438,10 @@ BOOL CAxis2App::PreTranslateMessage(MSG* pMsg)
 	return CWinApp::PreTranslateMessage(pMsg);
 }
 
+/**
+ * @brief Sucht nach einer bereits laufenden Instanz der Anwendung.
+ * @return bool true, wenn eine Instanz gefunden wurde, andernfalls false.
+ */
 bool CAxis2App::FindInstance()
 {
 	// try to determine if there is already an instance of this application running.
@@ -421,6 +461,14 @@ bool CAxis2App::FindInstance()
 
 //////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Liest einen DWORD-Wert aus der Windows-Registrierung.
+ * @param csValue Name des Werts.
+ * @param dwDefault Standardwert, falls der Schlüssel nicht gefunden wird.
+ * @param hMainKey Hauptschlüssel (z.B. HKEY_LOCAL_MACHINE).
+ * @param csSubKey Unterschlüssel.
+ * @return DWORD Der gelesene Wert oder der Standardwert.
+ */
 DWORD CAxis2App::GetRegistryDword(CString csValue, DWORD dwDefault, HKEY hMainKey, CString csSubKey)
 {
 	HKEY hKey;
@@ -450,6 +498,14 @@ DWORD CAxis2App::GetRegistryDword(CString csValue, DWORD dwDefault, HKEY hMainKe
 	return dwValue;
 }
 
+/**
+ * @brief Liest einen String-Wert aus der Windows-Registrierung.
+ * @param csValue Name des Werts.
+ * @param csDefault Standardwert, falls der Schlüssel nicht gefunden wird.
+ * @param hMainKey Hauptschlüssel (z.B. HKEY_LOCAL_MACHINE).
+ * @param csSubKey Unterschlüssel.
+ * @return CString Der gelesene Wert oder der Standardwert.
+ */
 CString CAxis2App::GetRegistryString(CString csValue, CString csDefault, HKEY hMainKey, CString csSubKey)
 {
 	HKEY hKey;
@@ -481,6 +537,13 @@ CString CAxis2App::GetRegistryString(CString csValue, CString csDefault, HKEY hM
 	return _T(szBuffer);
 }
 
+/**
+ * @brief Liest einen Multi-String-Wert aus der Windows-Registrierung.
+ * @param csValue Name des Werts.
+ * @param pStrings Zeiger auf ein CStringArray, das die gelesenen Strings aufnimmt.
+ * @param hMainKey Hauptschlüssel (z.B. HKEY_LOCAL_MACHINE).
+ * @param csSubKey Unterschlüssel.
+ */
 void CAxis2App::GetRegistryMultiSz(CString csValue, CStringArray * pStrings, HKEY hMainKey, CString csSubKey)
 {
 	// Make sure the input array is empty
@@ -535,6 +598,13 @@ void CAxis2App::GetRegistryMultiSz(CString csValue, CStringArray * pStrings, HKE
 
 //////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Schreibt einen DWORD-Wert in die Windows-Registrierung.
+ * @param csValue Name des Werts.
+ * @param dwValue Der zu schreibende Wert.
+ * @param hMainKey Hauptschlüssel (z.B. HKEY_LOCAL_MACHINE).
+ * @param csSubKey Unterschlüssel.
+ */
 void CAxis2App::PutRegistryDword(CString csValue, DWORD dwValue, HKEY hMainKey, CString csSubKey)
 {
 	HKEY hKey;
@@ -558,6 +628,13 @@ void CAxis2App::PutRegistryDword(CString csValue, DWORD dwValue, HKEY hMainKey, 
 	RegCloseKey(hKey);
 }
 
+/**
+ * @brief Schreibt einen String-Wert in die Windows-Registrierung.
+ * @param csValue Name des Werts.
+ * @param csString Der zu schreibende String.
+ * @param hMainKey Hauptschlüssel (z.B. HKEY_LOCAL_MACHINE).
+ * @param csSubKey Unterschlüssel.
+ */
 void CAxis2App::PutRegistryString(CString csValue, CString csString, HKEY hMainKey, CString csSubKey)
 {
 	HKEY hKey;
@@ -582,6 +659,13 @@ void CAxis2App::PutRegistryString(CString csValue, CString csString, HKEY hMainK
 	RegCloseKey(hKey);
 }
 
+/**
+ * @brief Schreibt einen Multi-String-Wert in die Windows-Registrierung.
+ * @param csValue Name des Werts.
+ * @param pStrings Zeiger auf ein CStringArray mit den zu schreibenden Strings.
+ * @param hMainKey Hauptschlüssel (z.B. HKEY_LOCAL_MACHINE).
+ * @param csSubKey Unterschlüssel.
+ */
 void CAxis2App::PutRegistryMultiSz(CString csValue, CStringArray * pStrings, HKEY hMainKey, CString csSubKey)
 {
 	HKEY hKey;
@@ -624,6 +708,11 @@ void CAxis2App::PutRegistryMultiSz(CString csValue, CStringArray * pStrings, HKE
 
 //////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Löscht einen Schlüssel aus der Windows-Registrierung.
+ * @param csKeyName Name des zu löschenden Schlüssels.
+ * @param hRootKey Hauptschlüssel, unter dem sich der Schlüssel befindet.
+ */
 void CAxis2App::DeleteRegistryKey(CString csKeyName, HKEY hRootKey)
 {
 	HKEY hKey;
@@ -640,6 +729,12 @@ void CAxis2App::DeleteRegistryKey(CString csKeyName, HKEY hRootKey)
 	return;
 }
 
+/**
+ * @brief Löscht einen Wert aus der Windows-Registrierung.
+ * @param csValueName Name des zu löschenden Werts.
+ * @param csSubKey Unterschlüssel, unter dem sich der Wert befindet.
+ * @param hRootKey Hauptschlüssel, unter dem sich der Unterschlüssel befindet.
+ */
 void CAxis2App::DeleteRegistryValue(CString csValueName, CString csSubKey, HKEY hRootKey)
 {
 	HKEY hKey;
@@ -668,6 +763,10 @@ void CAxis2App::DeleteRegistryValue(CString csValueName, CString csSubKey, HKEY 
 
 //////////////////////////////////////////////////////////////////////////
 
+/**
+ * @brief Ruft den Versionstitel der Anwendung ab.
+ * @return CString Der formatierte Versionstitel.
+ */
 CString CAxis2App::GetVersionTitle()
 {
 	CString csExe = AfxGetAppName();
@@ -676,29 +775,45 @@ CString CAxis2App::GetVersionTitle()
 	sprintf_s(pszExe,csExe.GetLength()+1, csExe);
 	DWORD dwHandle = 0;
 	DWORD dwSize = GetFileVersionInfoSize(pszExe, &dwHandle);
+	if (dwSize == 0)
+	{
+		delete [] pszExe;
+		return CMsg("IDS_AXIS_VERSION_UNKNOWN");
+	}
 	char * pBuffer = new char [dwSize];
 	GetFileVersionInfo(pszExe, dwHandle, dwSize, (LPVOID) pBuffer);
 	CString csVersionInfo;
 	unsigned int iDataSize = 80;
 	LPVOID pData;
-	VerQueryValue(pBuffer, _T("\\StringFileInfo\\040904b0\\ProductVersion"), &pData, &iDataSize);
-	csVersionInfo.Format("%s", pData);
+	if (VerQueryValue(pBuffer, _T("\\StringFileInfo\\040904b0\\ProductVersion"), &pData, &iDataSize))
+	{
+		csVersionInfo.Format("%s", pData);
+		csVersionInfo.Replace(",", ".");
+		csVersionInfo.Replace(" ", "");
+	}
+	else
+	{
+		csVersionInfo = "N/A";
+	}
 
 	delete [] pszExe;
 	delete [] pBuffer;
 	
-	csVersionInfo.Replace(",", ".");
-	csVersionInfo.Replace(" ", "");
-
 	return CFMsg(CMsg("IDS_AXIS_VERSION"),csVersionInfo);
 }
 
-
+/**
+ * @brief Ruft den Build-Zeitstempel ab.
+ * @return CString Der formatierte Zeitstempel.
+ */
 CString CAxis2App::GetBuildTimestamp()
 {
 	return CFMsg("%1 %2", __DATE__, __TIME__);
 }
 
+/**
+ * @brief Aktualisiert das Profil-Menü.
+ */
 void CAxis2App::UpdateProfileMenu()
 {
 	CMenu* pSubMenu = pDefMenu.GetSubMenu(1);
@@ -715,6 +830,9 @@ void CAxis2App::UpdateProfileMenu()
 	}
 }
 
+/**
+ * @brief Aktualisiert die Profileinstellungen.
+ */
 void CAxis2App::UpdateProfileSettings()
 {
 	int iDef = m_pScripts->m_aDefList.Find("USEMAPDIFFS");
@@ -730,6 +848,9 @@ void CAxis2App::UpdateProfileSettings()
 //*************************************
 //Load Muls
 
+/**
+ * @brief Initialisiert die Pfade zu den .mul-Dateien.
+ */
 void CAxis2App::InitializeMulPaths()
 {
 	saMulPaths.SetSize(VERFILE_QTY);
@@ -747,17 +868,26 @@ void CAxis2App::InitializeMulPaths()
 	LoadCustomPaths();
 }
 
+/**
+ * @brief Lädt benutzerdefinierte Pfade aus der Registry.
+ */
 void CAxis2App::LoadCustomPaths()
 {
 
 	for(int i = 0; i < VERFILE_QTY; i++)
 	{
-		CString csPath = Main->GetRegistryString(GetMulFileName(i), "", hRegLocation, REGKEY_OVERRIDEPATH);
+		CString csPath = GetRegistryString(GetMulFileName(i), "", hRegLocation, REGKEY_OVERRIDEPATH);
 		if (csPath != "")
 			SetMulPath((short)i, csPath);
 	}
 }
 
+/**
+ * @brief Setzt den Pfad für eine bestimmte .mul-Datei.
+ * @param sFileIndex Index der Datei.
+ * @param pszFilePath Der Pfad zur Datei.
+ * @return BOOL TRUE bei Erfolg, andernfalls FALSE.
+ */
 BOOL CAxis2App::SetMulPath(short sFileIndex, LPCTSTR pszFilePath)
 {
 	if ( sFileIndex < 0 || sFileIndex > saMulPaths.GetUpperBound() )
@@ -768,18 +898,24 @@ BOOL CAxis2App::SetMulPath(short sFileIndex, LPCTSTR pszFilePath)
 	return TRUE;
 }
 
+/**
+ * @brief Ruft den Pfad für eine bestimmte .mul-Datei ab.
+ * @param sFileIndex Index der Datei.
+ * @return CString Der Pfad zur Datei.
+ */
 CString CAxis2App::GetMulPath(short sFileIndex)
 {
 	CString strResult;
-	if ( sFileIndex < 0 || sFileIndex > saMulPaths.GetUpperBound() )
+	if ( sFileIndex >= 0 && sFileIndex <= saMulPaths.GetUpperBound() )
 	{
-		// Do nothing...we never set these
-	}
-	else
 		strResult = saMulPaths.GetAt(sFileIndex);
+	}
 	return strResult;
 }
 
+/**
+ * @brief Lädt die bodydef.mul-Datei.
+ */
 void CAxis2App::LoadBodyDef()
 {
 	CString csPath = GetMulPath(VERFILE_BODYDEF);
@@ -814,6 +950,9 @@ void CAxis2App::LoadBodyDef()
 				
 }
 
+/**
+ * @brief Lädt die bodyconv.def-Datei.
+ */
 void CAxis2App::LoadBodyConvert()
 {
 	CString csPath = GetMulPath(VERFILE_BODYCONVDEF);
@@ -870,6 +1009,9 @@ void CAxis2App::LoadBodyConvert()
 				
 }
 
+/**
+ * @brief Lädt die hues.mul-Datei.
+ */
 void CAxis2App::LoadHues()
 {
 	CFile cfHues;
@@ -896,6 +1038,9 @@ void CAxis2App::LoadHues()
 		m_log.Add(1,CFMsg(CMsg("IDS_WARNING_NOOPEN"), csHueFile));
 }
 
+/**
+ * @brief Lädt die Sound-Dateien (soundidx.mul und sound.mul).
+ */
 void CAxis2App::LoadSounds()
 {
 	CFile cfSoundidx;
@@ -915,7 +1060,7 @@ void CAxis2App::LoadSounds()
 					CFile cfSoundmul;
 					CString csSoundmulFile;
 					char cName[32];
-					csSoundmulFile = Main->GetMulPath(VERFILE_SOUND);
+					csSoundmulFile = GetMulPath(VERFILE_SOUND);
 
 					if ( cfSoundmul.Open( csSoundmulFile, CFile::modeRead | CFile::typeBinary | CFile::shareDenyNone ) )
 					{
@@ -942,6 +1087,9 @@ void CAxis2App::LoadSounds()
 		m_log.Add(1,CFMsg(CMsg("IDS_WARNING_NOOPEN"), csSoundidxFile));
 }
 
+/**
+ * @brief Lädt die Musikliste.
+ */
 void CAxis2App::LoadMusic()
 {
 	CString csMusicFile;
@@ -973,11 +1121,19 @@ void CAxis2App::LoadMusic()
 
 			m_aMusic.Add( pMusic );
 		}
+		pMusicList->Close(); // Close the file
+		delete pMusicList;   // Delete the object
 	}
 	else
+	{
+		delete pMusicList; // Delete if open failed
 		m_log.Add(1,CFMsg(CMsg("IDS_WARNING_NOOPEN"), csMusicFile));
+	}
 }
 
+/**
+ * @brief Gibt die Ressourcen der bodydef.mul frei.
+ */
 void CAxis2App::UnLoadBodyDef()
 {
 	for ( int i = 0; i <= m_daBodydef.GetUpperBound(); i++ )
@@ -988,6 +1144,9 @@ void CAxis2App::UnLoadBodyDef()
 	m_daBodydef.RemoveAll();
 }
 
+/**
+ * @brief Gibt die Ressourcen der bodyconv.def frei.
+ */
 void CAxis2App::UnLoadBodyConvert()
 {
 	for ( int i = 0; i <= m_daBodyConv.GetUpperBound(); i++ )
@@ -998,6 +1157,9 @@ void CAxis2App::UnLoadBodyConvert()
 	m_daBodyConv.RemoveAll();
 }
 
+/**
+ * @brief Gibt die Ressourcen der hues.mul frei.
+ */
 void CAxis2App::UnLoadHues()
 {
 	for ( int i = 0; i < m_aHueGroups.GetSize(); i++ )
@@ -1009,6 +1171,9 @@ void CAxis2App::UnLoadHues()
 	m_aHueGroups.RemoveAll();
 }
 
+/**
+ * @brief Gibt die Sound-Ressourcen frei.
+ */
 void CAxis2App::UnLoadSounds()
 {
 	for ( int i = 0; i < m_aSounds.GetSize(); i++ )
@@ -1020,6 +1185,9 @@ void CAxis2App::UnLoadSounds()
 	m_aSounds.RemoveAll();
 }
 
+/**
+ * @brief Gibt die Musik-Ressourcen frei.
+ */
 void CAxis2App::UnLoadMusic()
 {
 	for ( int i = 0; i < m_aMusic.GetSize(); i++ )
@@ -1031,6 +1199,9 @@ void CAxis2App::UnLoadMusic()
 	m_aMusic.RemoveAll();
 }
 
+/**
+ * @brief Gibt die Log-Ressourcen frei.
+ */
 void CAxis2App::UnLoadLog()
 {
 	if (!m_olLog.IsEmpty())
@@ -1063,6 +1234,12 @@ const char * pIniBlocks[INI_QTY] =
 	"ITEMTAG",
 };
 
+/**
+ * @brief Lädt die Axis2.ini-Datei.
+ * @param iLoadPart Teil, der geladen werden soll (-1 für alle).
+ * @param csLoadString Spezifischer String, der geladen werden soll.
+ * @return bool true bei Erfolg, andernfalls false.
+ */
 bool CAxis2App::LoadIni(int iLoadPart, CString csLoadString)
 {
 	try
@@ -1073,7 +1250,7 @@ bool CAxis2App::LoadIni(int iLoadPart, CString csLoadString)
 		CStdioFile pFile;
 		if ( !pFile.Open(csFile, CFile::modeRead | CFile::shareDenyNone) )
 		{
-			Main->m_log.Add(1,CFMsg(CMsg("IDS_WARNING_NOOPEN"), csFile));
+			m_log.Add(1,CFMsg(CMsg("IDS_WARNING_NOOPEN"), csFile));
 			return false;
 		}
 
@@ -1189,61 +1366,68 @@ bool CAxis2App::LoadIni(int iLoadPart, CString csLoadString)
 							break;
 						case INI_NPCTAG:
 							{
-								CStringArray * csaList;
+								CStringArray * csaList = NULL;
 								if (csIndex == "Stats")
-									csaList = &Main->m_pScripts->m_asaNPCStats;
+									csaList = &m_pScripts->m_asaNPCStats;
 								else if (csIndex == "Resistences")
-									csaList = &Main->m_pScripts->m_asaNPCResistences;
+									csaList = &m_pScripts->m_asaNPCResistences;
 								else if (csIndex == "Misc")
-									csaList = &Main->m_pScripts->m_asaNPCMisc;
+									csaList = &m_pScripts->m_asaNPCMisc;
 								else if (csIndex == "Tags")
-									csaList = &Main->m_pScripts->m_asaNPCTags;
-								while ( bStatus )
+									csaList = &m_pScripts->m_asaNPCTags;
+
+								if (csaList)
 								{
-									bStatus = pFile.ReadString(csLine);
-									if ( !bStatus )
-										break;
-									if ( csLine.Find("[") == 0 )
+									while ( bStatus )
 									{
-										break;
-									}
-									csLine = csLine.SpanExcluding("//");
-									csLine.Trim();
-									if ( csLine != "" )
-									{
-										csaList->Add(csLine);
+										bStatus = pFile.ReadString(csLine);
+										if ( !bStatus )
+											break;
+										if ( csLine.Find("[") == 0 )
+										{
+											break;
+										}
+										csLine = csLine.SpanExcluding("//");
+										csLine.Trim();
+										if ( csLine != "" )
+										{
+											csaList->Add(csLine);
+										}
 									}
 								}
 							}
 							break;
 						case INI_ITEMTAG:
 							{
-								CStringArray * csaList;
+								CStringArray * csaList = NULL;
 								if (csIndex == "Props")
-									csaList = &Main->m_pScripts->m_asaITEMProps;
+									csaList = &m_pScripts->m_asaITEMProps;
 								else if (csIndex == "Tags")
-									csaList = &Main->m_pScripts->m_asaITEMTags;
-								while ( bStatus )
+									csaList = &m_pScripts->m_asaITEMTags;
+
+								if (csaList)
 								{
-									bStatus = pFile.ReadString(csLine);
-									if ( !bStatus )
-										break;
-									if ( csLine.Find("[") == 0 )
+									while ( bStatus )
 									{
-										break;
-									}
-									csLine = csLine.SpanExcluding("//");
-									csLine.Trim();
-									if ( csLine != "" )
-									{
-										csaList->Add(csLine);
+										bStatus = pFile.ReadString(csLine);
+										if ( !bStatus )
+											break;
+										if ( csLine.Find("[") == 0 )
+										{
+											break;
+										}
+										csLine = csLine.SpanExcluding("//");
+										csLine.Trim();
+										if ( csLine != "" )
+										{
+											csaList->Add(csLine);
+										}
 									}
 								}
-
 							}
 							break;
 						default:
-							Main->m_log.Add(1,CFMsg(CMsg("IDS_WARNING_UNKNOWN_SECTION"), csLine, csFile));
+							m_log.Add(1,CFMsg(CMsg("IDS_WARNING_UNKNOWN_SECTION"), csLine, csFile));
 							bStatus = pFile.ReadString(csLine);
 							break;
 						}
@@ -1258,12 +1442,16 @@ bool CAxis2App::LoadIni(int iLoadPart, CString csLoadString)
 	}
 	catch (CFileException *e)
 	{
-		Main->m_log.Add(1,CFMsg(CMsg("IDS_WARNING_EXCEPTION_FILE"), e->m_strFileName, e->m_cause));
+		m_log.Add(1,CFMsg(CMsg("IDS_WARNING_EXCEPTION_FILE"), e->m_strFileName, e->m_cause));
 		e->Delete();
 	}
 	return true;
 }
 
+/**
+ * @brief Lädt die Sprachdatei.
+ * @return bool true bei Erfolg.
+ */
 bool CAxis2App::LoadLang()
 {
 	CString csFile;

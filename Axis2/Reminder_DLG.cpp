@@ -1,27 +1,4 @@
-/*
-
- **********************************************************************
- *
- * Original Axis by:
- * Copyright (C) Philip A. Esterle 1998-2002 + (C) parts Adron 2002
- *
- * 55r,56(x) Mods, and Axis2 re-build by:
- * Copyright (C) Benoit Croussette 2004-2006
- * 
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of version 2 of the GNU General Public License as
- * published by the Free Software Foundation.
- * 
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- * General Public License for more details.
- * 
- **********************************************************************
-
-*/
-
-// ReminderTab.cpp : implementation file
+// Reminder_DLG.cpp : implementation file
 //
 
 #include "stdafx.h"
@@ -35,37 +12,32 @@ static char THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-// CReminderDLG property page
+// CReminderDLG dialog
 
-IMPLEMENT_DYNCREATE(CReminderDLG, CDialog)
 
 CReminderDLG::CReminderDLG(CWnd* pParent /*=NULL*/)
-	: CDialog(CReminderDLG::IDD)
+	: CDialog(CReminderDLG::IDD, pParent)
 {
-	UNREFERENCED_PARAMETER(pParent);
-}
+	//{{AFX_DATA_INIT(CReminderDLG)
+	m_csMessage = _T("");
+	m_csTitle = _T("");
+	//}}AFX_DATA_INIT}
 
-CReminderDLG::~CReminderDLG()
-{
-}
 
 void CReminderDLG::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
 	//{{AFX_DATA_MAP(CReminderDLG)
-	DDX_Control(pDX, IDC_DELETE, m_cbDelete);
-	DDX_Control(pDX, IDC_NEVER, m_cbNever);
-	DDX_Control(pDX, IDC_TEXT, m_ceText);
-
+	DDX_Control(pDX, IDOK, m_OK);
+	DDX_Text(pDX, IDC_MESSAGE, m_csMessage);
+	DDX_Text(pDX, IDC_TITLE, m_csTitle);
 	//}}AFX_DATA_MAP
 }
 
 
 BEGIN_MESSAGE_MAP(CReminderDLG, CDialog)
 	//{{AFX_MSG_MAP(CReminderDLG)
-	ON_BN_CLICKED(IDC_DELETE, OnDelete)
-	ON_BN_CLICKED(IDC_NEVER, OnNever)
-	ON_BN_CLICKED(IDC_CLOSE, OnClose)
+	ON_WM_CTLCOLOR()
 	//}}AFX_MSG_MAP
 END_MESSAGE_MAP()
 
@@ -75,53 +47,22 @@ END_MESSAGE_MAP()
 BOOL CReminderDLG::OnInitDialog() 
 {
 	CDialog::OnInitDialog();
-	this->SetWindowPos(&wndTopMost, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-	m_ceText.SetWindowText(rObject->m_csText);
-	this->SetWindowText(rObject->m_csTitle);
-	if (rObject->bOnce)
-		m_cbNever.EnableWindow(false);
-	return TRUE;
-}
-void CReminderDLG::OnDelete()
-{
-	CString csKey;
-	csKey.Format("%s\\%s",REGKEY_REMINDER, rObject->m_csTitle);
-	Main->DeleteRegistryKey(csKey,hRegLocation);
-	OnClose();
+
+	// TODO: Add extra initialization here
+	m_OK.SetButtonImage(IDB_OK);
+
+	return TRUE;  // return TRUE unless you set the focus to a control
+	              // EXCEPTION: OCX Property Pages should return FALSE
 }
 
-void CReminderDLG::OnNever()
+HBRUSH CReminderDLG::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
-	CString csKey;
-	csKey.Format("%s\\%s",REGKEY_REMINDER, rObject->m_csTitle);
-	Main->PutRegistryDword("Type",0,hRegLocation,csKey);
-	OnClose();
-}
+	HBRUSH hbr = CDialog::OnCtlColor(pDC, pWnd, nCtlColor);
 
-void CReminderDLG::OnClose()
-{
-	if (rObject->bOnce)
-	{
-		CString csKey;
-		csKey.Format("%s\\%s",REGKEY_REMINDER, rObject->m_csTitle);
-		Main->PutRegistryDword("Type",0,hRegLocation,csKey);
-	}
-	OnCancel();
-}
+	// TODO: Change any attributes of the DC here
+	pDC->SetBkMode(TRANSPARENT);
+	pDC->SetTextColor(RGB(255,255,255));
 
-void CReminderDLG::OnCancel()
-{
-	HKEY hKey;
-	CString csKey;
-	csKey.Format("%s\\%s",REGKEY_REMINDER, rObject->m_csTitle);
-	LONG lStatus = RegOpenKeyEx(hRegLocation, csKey, 0, KEY_ALL_ACCESS, &hKey);
-	if ( lStatus == ERROR_SUCCESS )
-	{
-		CTime tNow = CTime::GetCurrentTime();
-		CString csKey;
-		csKey.Format("%s\\%s",REGKEY_REMINDER, rObject->m_csTitle);
-		Main->PutRegistryDword("LastRead",tNow.GetDay(),hRegLocation,csKey);
-	}
-	delete rObject;
-	CDialog::OnCancel();
+	// TODO: Return a different brush if the default is not desired
+	return ((CAxis2App*)AfxGetApp())->m_bkbrush;
 }
